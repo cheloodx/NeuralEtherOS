@@ -45,13 +45,12 @@ struct NeuralSearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            headerBar
+            chatHeader
             messagesArea
-            if isTyping { typingBar }
-            if showSuggestions && messages.count > 1 { suggestionsStrip }
-            inputBar
+            if isTyping { typingIndicator }
+            chatInputBar
         }
-        .background(Color.surface)
+        .background(Color(hex: "#1A1A2E"))
         .onAppear {
             if messages.isEmpty {
                 messages.append(ChatMessage(role: .assistant, content: welcomeMessage, timestamp: Date()))
@@ -61,109 +60,66 @@ struct NeuralSearchView: View {
 
     // MARK: - Header
 
-    private var headerBar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.neuralPrimaryContainer, Color.neuralPrimary],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "brain.head.profile")
-                        .font(.system(size: 18))
-                        .foregroundColor(.surface)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("NEURAL AI CHAT")
-                        .font(NeuralFont.headlineSmall())
-                        .foregroundColor(.onSurface)
-                    HStack(spacing: Spacing.sm) {
-                        Circle()
-                            .fill(Color.neuralSuccess)
-                            .frame(width: 6, height: 6)
-                        Text("\(connectedCountries) COUNTRIES \u{2022} LIVE")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralSuccess)
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(searchCount)")
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .foregroundColor(.neuralPrimary)
-                    Text("QUERIES")
-                        .font(.system(size: 7, weight: .medium, design: .monospaced))
-                        .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                }
-
-                Button { clearChat() } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 15))
-                        .foregroundColor(.onSurfaceVariant)
-                }
-                .buttonStyle(.plain)
+    // MARK: - ChatGPT-Style Header
+    private var chatHeader: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [Color(hex: "#6C63FF"), Color(hex: "#00D2FF")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(.white)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.sm) {
-                    statusPill(icon: "globe", text: "\(connectedCountries) Countries")
-                    statusPill(icon: "server.rack", text: "\(dataCenters) Centers")
-                    statusPill(icon: "doc.text.magnifyingglass", text: "\(indexedSources / 1_000_000)M+ Sources")
-                    statusPill(icon: "person.3.fill", text: "Multi-User")
-                    statusPill(icon: "character.bubble", text: "All Languages")
-                    statusPill(icon: "sparkles", text: "AI Agent")
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Neural Ether AI")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Circle().fill(Color(hex: "#00FF41")).frame(width: 7, height: 7)
+                    Text("Online \u{2022} \(connectedCountries) countries")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.6))
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, Spacing.sm)
             }
+
+            Spacer()
+
+            Button { clearChat() } label: {
+                Image(systemName: "plus.message")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(8)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
-        .background(Color.surfaceContainerLow)
-        .overlay(
-            Rectangle()
-                .fill(Color.outlineVariant.opacity(0.1))
-                .frame(height: 1),
-            alignment: .bottom
-        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color(hex: "#16213E"))
     }
 
-    private func statusPill(icon: String, text: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon).font(.system(size: 8))
-            Text(text).font(.system(size: 8, weight: .medium, design: .monospaced))
-        }
-        .foregroundColor(.neuralPrimary.opacity(0.7))
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(Color.neuralPrimary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
-    }
-
-    // MARK: - Messages
+    // MARK: - ChatGPT-Style Messages Area
 
     private var messagesArea: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: Spacing.lg) {
+                LazyVStack(spacing: 0) {
+                    // Welcome suggestions at top
+                    if messages.count <= 1 {
+                        welcomeSuggestions
+                    }
                     ForEach(messages) { msg in
-                        bubbleView(msg)
+                        chatBubble(msg)
                             .id(msg.id)
                     }
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.lg)
+                .padding(.vertical, 12)
             }
             .onChange(of: messages.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.3)) {
+                withAnimation(.easeOut(duration: 0.2)) {
                     if let last = messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
@@ -172,198 +128,157 @@ struct NeuralSearchView: View {
         }
     }
 
-    private func bubbleView(_ msg: ChatMessage) -> some View {
-        HStack(alignment: .top, spacing: Spacing.sm) {
-            if msg.role == .assistant { aiAvatar } else { Spacer(minLength: 36) }
-
-            VStack(alignment: msg.role == .user ? .trailing : .leading, spacing: 4) {
-                HStack(spacing: Spacing.sm) {
-                    if msg.role == .assistant {
-                        Text("NEURAL_AI")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralPrimary)
-                        if let sources = msg.sourceCount {
-                            Text("\u{2022} \(sources) sources")
-                                .font(.system(size: 8, design: .monospaced))
-                                .foregroundColor(.neuralPrimary.opacity(0.5))
-                        }
-                    } else {
-                        Text("YOU")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralTertiary)
-                    }
-                    Text(msg.timeString)
-                        .font(.system(size: 8, design: .monospaced))
-                        .foregroundColor(.onSurfaceVariant.opacity(0.35))
+    private func chatBubble(_ msg: ChatMessage) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            if msg.role == .assistant {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(colors: [Color(hex: "#6C63FF"), Color(hex: "#00D2FF")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "brain.head.profile")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.white)
                 }
+            } else {
+                Spacer(minLength: 50)
+            }
 
+            VStack(alignment: msg.role == .user ? .trailing : .leading, spacing: 6) {
                 Text(msg.content)
-                    .font(NeuralFont.bodyMedium())
-                    .foregroundColor(.onSurface)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.white)
                     .textSelection(.enabled)
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.vertical, Spacing.md)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                     .background(
                         msg.role == .assistant
-                            ? Color.surfaceContainerLow
-                            : Color.neuralPrimary.opacity(0.1)
+                            ? Color(hex: "#2A2A4A")
+                            : Color(hex: "#6C63FF")
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xl))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.xl)
-                            .stroke(
-                                msg.role == .assistant
-                                    ? Color.outlineVariant.opacity(0.08)
-                                    : Color.neuralPrimary.opacity(0.15),
-                                lineWidth: 1
-                            )
-                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
 
-                if msg.role == .assistant, let regions = msg.regions {
-                    HStack(spacing: 4) {
-                        ForEach(regions, id: \.self) { region in
-                            Text(region)
-                                .font(.system(size: 7, weight: .medium, design: .monospaced))
-                                .foregroundColor(.neuralPrimary.opacity(0.6))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.neuralPrimary.opacity(0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
+                HStack(spacing: 6) {
+                    Text(msg.timeString)
+                        .font(.system(size: 11))
+                        .foregroundColor(Color.white.opacity(0.35))
+                    if msg.role == .assistant, let sources = msg.sourceCount {
+                        Text("\u{2022} \(sources) sources")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "#6C63FF").opacity(0.7))
                     }
                 }
             }
 
-            if msg.role == .user { userAvatar } else { Spacer(minLength: 36) }
-        }
-    }
-
-    private var aiAvatar: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.neuralPrimaryContainer.opacity(0.5), Color.neuralPrimary.opacity(0.3)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 28, height: 28)
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 13))
-                .foregroundColor(.neuralPrimary)
-        }
-    }
-
-    private var userAvatar: some View {
-        ZStack {
-            Circle()
-                .fill(Color.neuralTertiary.opacity(0.15))
-                .frame(width: 28, height: 28)
-            Image(systemName: "person.fill")
-                .font(.system(size: 13))
-                .foregroundColor(.neuralTertiary)
-        }
-    }
-
-    // MARK: - Typing Indicator
-
-    private var typingBar: some View {
-        HStack(spacing: Spacing.sm) {
-            aiAvatar
-            HStack(spacing: 6) {
-                Text("Analyzing \(connectedCountries) countries")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.neuralPrimary.opacity(0.6))
-                ProgressView()
-                    .scaleEffect(0.6)
-                    .tint(.neuralPrimary)
+            if msg.role == .user {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#6C63FF").opacity(0.3))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color(hex: "#6C63FF"))
+                }
+            } else {
+                Spacer(minLength: 50)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .background(Color.surfaceContainerLow)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xl))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Typing Indicator (ChatGPT style)
+
+    private var typingIndicator: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: [Color(hex: "#6C63FF"), Color(hex: "#00D2FF")], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 32, height: 32)
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.white)
+            }
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(Color.white.opacity(0.5))
+                        .frame(width: 8, height: 8)
+                        .offset(y: typingDotOffset(i))
+                        .animation(.easeInOut(duration: 0.5).repeatForever().delay(Double(i) * 0.15), value: isTyping)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(hex: "#2A2A4A"))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
             Spacer()
         }
-        .padding(.horizontal, Spacing.lg)
-        .padding(.bottom, Spacing.xs)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
         .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
-    // MARK: - AI Suggestions Strip
-
-    private var suggestionsStrip: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 10))
-                    .foregroundColor(.neuralWarning)
-                Text("AI SUGGESTIONS")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.neuralWarning)
-                Spacer()
-                Button {
-                    withAnimation { showSuggestions = false }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10))
-                        .foregroundColor(.onSurfaceVariant.opacity(0.4))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, Spacing.lg)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.sm) {
-                    ForEach(Array(aiSuggestions.shuffled().prefix(4).enumerated()), id: \.offset) { _, suggestion in
-                        Button {
-                            messageText = suggestion.1
-                            sendMessage()
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: suggestion.0)
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.neuralWarning)
-                                    Text(suggestion.2)
-                                        .font(.system(size: 8, design: .monospaced))
-                                        .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                                }
-                                Text(suggestion.1)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.onSurface)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            .frame(width: 200, alignment: .leading)
-                            .padding(Spacing.md)
-                            .background(Color.surfaceContainerLow)
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: CornerRadius.lg)
-                                    .stroke(Color.neuralWarning.opacity(0.1), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, Spacing.lg)
-            }
-        }
-        .padding(.vertical, Spacing.sm)
-        .background(Color.surface)
+    private func typingDotOffset(_ index: Int) -> CGFloat {
+        return isTyping ? -4 : 0
     }
 
-    // MARK: - Input Bar
+    // MARK: - Welcome Suggestions (ChatGPT style cards)
 
-    private var inputBar: some View {
+    private var welcomeSuggestions: some View {
+        VStack(spacing: 12) {
+            Text("Neural Ether AI")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.top, 20)
+            Text("Ask me anything in any language")
+                .font(.system(size: 15))
+                .foregroundColor(Color.white.opacity(0.5))
+                .padding(.bottom, 8)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                suggestionCard("System status", icon: "cpu", desc: "Full diagnostics")
+                suggestionCard("Security audit", icon: "lock.shield", desc: "Scan for threats")
+                suggestionCard("Global network", icon: "globe", desc: "175 countries")
+                suggestionCard("Trending now", icon: "flame", desc: "What's popular")
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+        }
+    }
+
+    private func suggestionCard(_ title: String, icon: String, desc: String) -> some View {
+        Button {
+            messageText = title
+            sendMessage()
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(Color(hex: "#6C63FF"))
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                Text(desc)
+                    .font(.system(size: 12))
+                    .foregroundColor(Color.white.opacity(0.4))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Color(hex: "#2A2A4A"))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - ChatGPT-Style Input Bar
+
+    private var chatInputBar: some View {
         VStack(spacing: 0) {
-            if messages.count <= 1 { quickChips }
-
-            HStack(spacing: Spacing.md) {
-                TextField("", text: $messageText, prompt: Text("Ask me anything in any language...").foregroundColor(.onSurfaceVariant.opacity(0.4)))
-                    .font(NeuralFont.bodyMedium())
-                    .foregroundColor(.onSurface)
+            HStack(spacing: 12) {
+                TextField("", text: $messageText, prompt: Text("Message Neural Ether AI...").foregroundColor(Color.white.opacity(0.3)))
+                    .font(.system(size: 16))
+                    .foregroundColor(.white)
                     .textFieldStyle(PlainTextFieldStyle())
                     .focused($isInputFocused)
                     .onSubmit { sendMessage() }
@@ -371,74 +286,35 @@ struct NeuralSearchView: View {
                 Button { sendMessage() } label: {
                     ZStack {
                         Circle()
-                            .fill(canSend ? Color.neuralPrimary : Color.neuralPrimary.opacity(0.15))
-                            .frame(width: 36, height: 36)
+                            .fill(canSend ? Color(hex: "#6C63FF") : Color.white.opacity(0.1))
+                            .frame(width: 40, height: 40)
                         Image(systemName: "arrow.up")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(canSend ? .surface : .onSurfaceVariant.opacity(0.3))
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(canSend ? .white : Color.white.opacity(0.3))
                     }
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(Color.surfaceContainerLow)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xl))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(hex: "#2A2A4A"))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
             .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.xl)
+                RoundedRectangle(cornerRadius: 24)
                     .stroke(
-                        isInputFocused ? Color.neuralPrimary.opacity(0.3) : Color.outlineVariant.opacity(0.1),
+                        isInputFocused ? Color(hex: "#6C63FF").opacity(0.5) : Color.white.opacity(0.08),
                         lineWidth: 1
                     )
             )
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .background(Color.surface)
+        .background(Color(hex: "#16213E"))
     }
 
     private var canSend: Bool {
         !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isTyping
-    }
-
-    private var quickChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                chip("System status", icon: "brain.head.profile")
-                chip("Scan for errors", icon: "exclamationmark.triangle")
-                chip("Security report", icon: "lock.shield")
-                chip("Global network", icon: "globe")
-                chip("Starea sistemului", icon: "flag")
-                chip("AI capabilities", icon: "sparkles")
-                chip("What time is it?", icon: "clock")
-                chip("Trending now", icon: "flame")
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.bottom, Spacing.sm)
-        }
-    }
-
-    private func chip(_ text: String, icon: String) -> some View {
-        Button {
-            messageText = text
-            sendMessage()
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: icon).font(.system(size: 10))
-                Text(text).font(.system(size: 11, weight: .medium))
-            }
-            .foregroundColor(.neuralPrimary)
-            .padding(.horizontal, Spacing.md)
-            .padding(.vertical, 8)
-            .background(Color.neuralPrimary.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadius.full)
-                    .stroke(Color.neuralPrimary.opacity(0.12), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Send & Process
