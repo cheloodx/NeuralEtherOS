@@ -754,11 +754,12 @@ struct NeuralSearchView: View {
         let city = cityWords.isEmpty ? "" : cityWords.map { $0.capitalized }.joined(separator: " ")
 
         let temp = Int.random(in: 8...26)
-        let conditions = lang == "ro"
-            ? ["Partial insorit", "Innorat", "Senin", "Cer variabil", "Ceata usoara", "Ploi usoare"][Int.random(in: 0...5)]
-            : ["Partly sunny", "Cloudy", "Clear skies", "Variable", "Light fog", "Light rain"][Int.random(in: 0...5)]
+        let condIndex = Int.random(in: 0...5)
+        let roConditions: [String] = ["Partial insorit", "Innorat", "Senin", "Cer variabil", "Ceata usoara", "Ploi usoare"]
+        let enConditions: [String] = ["Partly sunny", "Cloudy", "Clear skies", "Variable", "Light fog", "Light rain"]
+        let conditions: String = lang == "ro" ? roConditions[condIndex] : enConditions[condIndex]
         let humidity = Int.random(in: 40...85)
-        let wind = Double.random(in: 5...25)
+        let wind = Int.random(in: 5...25)
 
         if !city.isEmpty {
             if lang == "ro" {
@@ -768,7 +769,7 @@ struct NeuralSearchView: View {
                 \u{1F321} Temperatura: \(temp)\u{00B0}C
                 \u{2601} Conditii: \(conditions)
                 \u{1F4A7} Umiditate: \(humidity)%
-                \u{1F32C} Vant: \(String(format: "%.0f", wind)) km/h
+                \u{1F32C} Vant: \(wind) km/h
 
                 Prognoza urmatoarele ore:
                 \u{2022} +1h: \(temp + Int.random(in: -2...2))\u{00B0}C
@@ -784,7 +785,7 @@ struct NeuralSearchView: View {
             \u{1F321} Temperature: \(temp)\u{00B0}C
             \u{2601} Conditions: \(conditions)
             \u{1F4A7} Humidity: \(humidity)%
-            \u{1F32C} Wind: \(String(format: "%.0f", wind)) km/h
+            \u{1F32C} Wind: \(wind) km/h
 
             Forecast next hours:
             \u{2022} +1h: \(temp + Int.random(in: -2...2))\u{00B0}C
