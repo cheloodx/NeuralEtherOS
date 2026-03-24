@@ -1041,7 +1041,7 @@ struct CreatorPanelView: View {
         bruteForceChars = ""
         logActivity("CRACK_START: \(network.name) [\(network.encryption)]")
 
-        let phases = [
+        let phases: [(Double, String)] = [
             (0.05, "CAPTURING HANDSHAKE..."),
             (0.12, "HANDSHAKE CAPTURED — ANALYZING..."),
             (0.20, "LOADING WORDLIST: rockyou.txt (14M entries)"),
@@ -1055,12 +1055,13 @@ struct CreatorPanelView: View {
             (1.0, "PASSWORD CRACKED!"),
         ]
 
-        var totalDelay: Double = 0.0
+        // Each phase fires at 0.25s intervals for fast, visible progress
+        let stepInterval = 0.25
         for (i, phase) in phases.enumerated() {
-            let delay = Double(i) * 0.3 + Double.random(in: 0.1...0.2)
-            totalDelay = delay
+            let delay = Double(i) * stepInterval + 0.05
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.easeInOut(duration: 0.15)) {
+                guard crackingNetworkId == network.id else { return }
+                withAnimation(.easeInOut(duration: 0.12)) {
                     crackProgress = phase.0
                     crackPhase = phase.1
                 }
@@ -1070,16 +1071,18 @@ struct CreatorPanelView: View {
             }
         }
 
-        // Final: reveal password
-        DispatchQueue.main.asyncAfter(deadline: .now() + totalDelay + 0.4) {
-            if crackingNetworkId == network.id {
+        // Final: reveal password after all phases complete
+        let finalDelay = Double(phases.count) * stepInterval + 0.3
+        DispatchQueue.main.asyncAfter(deadline: .now() + finalDelay) {
+            guard crackingNetworkId == network.id else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
                 crackedPasswords[network.id] = network.password
                 crackingNetworkId = nil
                 crackProgress = 0.0
                 bruteForceChars = ""
                 crackPhase = ""
-                logActivity("CRACK_SUCCESS: \(network.name) — PASSWORD FOUND")
             }
+            logActivity("CRACK_SUCCESS: \(network.name) — PASSWORD FOUND")
         }
     }
 
@@ -1561,36 +1564,28 @@ struct CreatorPanelView: View {
     private func scanForCCTV() {
         isScanningCCTV = true
         cctvScanProgress = 0.0
-        cctvCameras = []
-        cctvConnectedCount = 0
-        selectedCCTV = nil
         logActivity("CCTV_SCAN_START: radius=1000m protocols=RTSP,ONVIF,HTTP")
 
-        let totalCams = CCTVCamera.mockCameras.count
-        let stepDelay = 0.12 // faster scanning
+        // Cameras are already loaded — scan just refreshes status with animated progress
+        let totalSteps = 8
+        let stepInterval = 0.15
 
-        // Quick initial progress
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation { cctvScanProgress = 0.15 }
-        }
-
-        // Add cameras quickly
-        for i in 0..<totalCams {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(i) * stepDelay) {
+        for step in 0..<totalSteps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(step) * stepInterval + 0.05) {
                 withAnimation(.easeInOut(duration: 0.1)) {
-                    cctvScanProgress = 0.15 + 0.75 * (Double(i + 1) / Double(totalCams))
-                    cctvCameras.append(CCTVCamera.mockCameras[i])
-                    if CCTVCamera.mockCameras[i].isOnline {
-                        cctvConnectedCount += 1
-                    }
+                    cctvScanProgress = Double(step + 1) / Double(totalSteps)
                 }
-                logActivity("CCTV_FOUND: \(CCTVCamera.mockCameras[i].name) [\(CCTVCamera.mockCameras[i].ip)]")
             }
         }
 
-        // Finish fast
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(totalCams) * stepDelay + 0.2) {
-            withAnimation {
+        // Finish scan — refresh random online/offline statuses
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(totalSteps) * stepInterval + 0.2) {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                // Randomly toggle some camera statuses to simulate real scan
+                for i in cctvCameras.indices {
+                    cctvCameras[i].isOnline = Bool.random() ? true : cctvCameras[i].isOnline
+                }
+                cctvConnectedCount = cctvCameras.filter { $0.isOnline }.count
                 isScanningCCTV = false
                 cctvScanProgress = 1.0
             }
@@ -1703,8 +1698,9 @@ struct CreatorPanelView: View {
     private func refreshNetwork() {
         isRefreshingNetwork = true
         logActivity("NETWORK_REFRESH_START")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            withAnimation {
+        // Fast refresh — 0.6s feels responsive
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation(.easeInOut(duration: 0.2)) {
                 networkThroughput = Double.random(in: 2.5...9.5)
                 networkConnections = Int.random(in: 45000...150000)
                 trafficData = [
@@ -1950,7 +1946,7 @@ struct CreatorPanelView: View {
     private func pingDevice(name: String, ip: String) {
         logActivity("PING_START: \(ip)")
         pingResults[name] = "PINGING \(ip)..."
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             let ms = Double.random(in: 1.2...45.0)
             let lost = Int.random(in: 0...1)
             pingResults[name] = "PING \(ip): 4 sent, \(4 - lost) received, \(lost * 25)% loss\navg=\(String(format: "%.1f", ms))ms min=\(String(format: "%.1f", ms * 0.7))ms max=\(String(format: "%.1f", ms * 1.4))ms"
@@ -3044,7 +3040,7 @@ struct CCTVCamera: Identifiable {
     let location: String
     let resolution: String
     let fps: Int
-    let isOnline: Bool
+    var isOnline: Bool
     let vulnerability: String
     let streamURL: String
     let manufacturer: String

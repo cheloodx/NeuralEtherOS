@@ -568,43 +568,16 @@ struct NeuralSearchView: View {
     }
 
     private func statusResponse(_ lang: String) -> String {
-        let syncText = pct(orchestrator.syncLevel)
-        let nodesText = "\(orchestrator.activeNodes)"
-        let latencyText = ms(orchestrator.latency)
-        let statusText = orchestrator.syncLevel > 0.85 ? (lang == "ro" ? "stabil" : "stable") : (lang == "ro" ? "recalibrare" : "recalibrating")
+        let isHealthy = orchestrator.syncLevel > 0.85
 
         if lang == "ro" {
-            return """
-            Am interogat toate cele \(dataCenters) centre de date din \(connectedCountries) \u{021B}\u{0103}ri. Status \u{00EE}n timp real:
-
-            \u{25CF} Nivel Sync: \(syncText)
-            \u{25CF} Noduri Active: \(nodesText) (distribuite global)
-            \u{25CF} Laten\u{021B}\u{0103}: \(latencyText)
-            \u{25CF} Rat\u{0103} Cre\u{0219}tere: \(orchestrator.growthRate)x
-            \u{25CF} Protocol Panic: \(orchestrator.isPanicActive ? "ACTIV" : "Standby")
-            \u{25CF} Deployment: \(orchestrator.deploymentStatus.label)
-            \u{25CF} Surse Indexate: \(indexedSources / 1_000_000)M+
-
-            Re\u{021B}eaua neural\u{0103} este \(statusText) \u{00EE}n toate regiunile.
-
-            Sugestie: \(orchestrator.syncLevel < 0.9 ? "Ruleaz\u{0103} o recalibrare din tab-ul SOVEREIGN." : "Totul optim. Nicio ac\u{021B}iune necesar\u{0103}.")
-            """
+            return isHealthy
+                ? "Totul func\u{021B}ioneaz\u{0103} perfect! Sistemul este stabil, toate conexiunile sunt active \u{0219}i nu am detectat nicio problem\u{0103}.\n\nDac\u{0103} vrei, pot s\u{0103} rulez un diagnostic complet sau s\u{0103} verific ceva anume. Spune-mi!"
+                : "Am verificat sistemul \u{0219}i am g\u{0103}sit c\u{00E2}teva lucruri de \u{00EE}mbun\u{0103}t\u{0103}\u{021B}it. Nimic grav, dar a\u{0219} recomanda o recalibrare.\n\nVrei s\u{0103} o fac automat sau preferi s\u{0103} \u{00EE}\u{021B}i ar\u{0103}t detaliile mai \u{00EE}nt\u{00E2}i?"
         }
-        return """
-        I've queried all \(dataCenters) data centers across \(connectedCountries) countries. Real-time status:
-
-        \u{25CF} Sync Level: \(syncText)
-        \u{25CF} Active Nodes: \(nodesText) (distributed globally)
-        \u{25CF} Network Latency: \(latencyText)
-        \u{25CF} Growth Rate: \(orchestrator.growthRate)x
-        \u{25CF} Panic Protocol: \(orchestrator.isPanicActive ? "ACTIVE" : "Standby")
-        \u{25CF} Deployment: \(orchestrator.deploymentStatus.label)
-        \u{25CF} Indexed Sources: \(indexedSources / 1_000_000)M+
-
-        Neural mesh is \(statusText) across all regions.
-
-        Suggestion: \(orchestrator.syncLevel < 0.9 ? "Run a full node recalibration from SOVEREIGN tab." : "All systems optimal. No action needed.")
-        """
+        return isHealthy
+            ? "Everything is running smoothly! The system is stable, all connections are active, and I haven't detected any issues.\n\nI can run a full diagnostic or check something specific if you'd like. Just ask!"
+            : "I've checked the system and found a few things that could be improved. Nothing critical, but I'd recommend a recalibration.\n\nWant me to handle it automatically, or would you prefer to see the details first?"
     }
 
     private func errorScanResponse(_ lang: String) -> String {
@@ -633,203 +606,51 @@ struct NeuralSearchView: View {
 
     private func securityResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Raport Global de Securitate:
-
-            \u{25CF} Protocol Panic: \(orchestrator.isPanicActive ? "ACTIVAT \u{2014} Toate cele \(connectedCountries) noduri blocate" : "Armat \u{2014} Gata \u{00EE}n toate regiunile")
-            \u{25CF} Criptare: Quantum AES-512 (tot traficul)
-            \u{25CF} Con\u{021B}inut +18: \(orchestrator.adultContentEnabled ? "Deblocat (creator)" : "Filtrat")
-            \u{25CF} Modul WiFi: \(orchestrator.wifiAccessEnabled ? "Activ \u{2014} scaneaz\u{0103}" : "Restric\u{021B}ionat")
-            \u{25CF} Webcam: \(orchestrator.webcamAccessEnabled ? "Activ \u{2014} feed accesibil" : "Restric\u{021B}ionat")
-            \u{25CF} Nivel Amenin\u{021B}are: SC\u{0102}ZUT
-            \u{25CF} Firewall-uri: \(dataCenters) active
-
-            Sugestie: Postura de securitate este puternic\u{0103}. Continu\u{0103} monitorizarea.
-            """
+            return "Am verificat securitatea \u{0219}i totul arat\u{0103} bine! Criptarea este activ\u{0103}, firewall-urile func\u{021B}ioneaz\u{0103}, \u{0219}i nu am detectat nicio amenin\u{021B}are.\n\nDac\u{0103} vrei, pot face un audit complet de securitate sau pot verifica un aspect specific. Ce preferi?"
         }
-        return """
-        Global Security Intelligence Report:
-
-        \u{25CF} Panic Protocol: \(orchestrator.isPanicActive ? "ACTIVATED \u{2014} All \(connectedCountries) nodes locked" : "Armed \u{2014} Ready across all regions")
-        \u{25CF} Encryption: Quantum AES-512 (all traffic)
-        \u{25CF} +18 Content: \(orchestrator.adultContentEnabled ? "Unlocked (creator)" : "Filtered")
-        \u{25CF} WiFi Module: \(orchestrator.wifiAccessEnabled ? "Active \u{2014} scanning" : "Restricted")
-        \u{25CF} Webcam: \(orchestrator.webcamAccessEnabled ? "Active \u{2014} feeds accessible" : "Restricted")
-        \u{25CF} Threat Level: LOW
-        \u{25CF} Firewalls: \(dataCenters) active
-
-        Suggestion: Security posture is strong. Keep monitoring.
-        """
+        return "I've checked the security and everything looks great! Encryption is active, firewalls are running, and I haven't detected any threats.\n\nI can run a full security audit or check something specific if you'd like. What would you prefer?"
     }
 
     private func networkResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Analiz\u{0103} Re\u{021B}ea Global\u{0103}:
-
-            \u{25CF} \u{021A}\u{0103}ri Conectate: \(connectedCountries)
-            \u{25CF} Centre de Date: \(dataCenters)
-            \u{25CF} Laten\u{021B}\u{0103}: \(ms(orchestrator.latency))
-            \u{25CF} Noduri Active: \(orchestrator.activeNodes)
-
-            Pe regiuni:
-            \u{2022} Europa (44 \u{021B}\u{0103}ri): \(Int.random(in: 8...22))ms \u{2014} 12 centre
-            \u{2022} Americi (35 \u{021B}\u{0103}ri): \(Int.random(in: 15...35))ms \u{2014} 10 centre
-            \u{2022} Asia-Pacific (48 \u{021B}\u{0103}ri): \(Int.random(in: 18...45))ms \u{2014} 14 centre
-            \u{2022} Africa (34 \u{021B}\u{0103}ri): \(Int.random(in: 25...65))ms \u{2014} 6 centre
-            \u{2022} Orientul Mijlociu (14 \u{021B}\u{0103}ri): \(Int.random(in: 12...40))ms \u{2014} 5 centre
-
-            Toate regiunile sunt opera\u{021B}ionale.
-            """
+            return "Re\u{021B}eaua func\u{021B}ioneaz\u{0103} excelent! Sunt conectat la \(connectedCountries) \u{021B}\u{0103}ri prin \(dataCenters) centre de date, \u{0219}i totul merge rapid.\n\nEuropa, Americile \u{0219}i Asia au cele mai bune conexiuni. Vrei s\u{0103} verific performan\u{021B}a pentru o regiune anume?"
         }
-        return """
-        Global Network Analysis:
-
-        \u{25CF} Connected Countries: \(connectedCountries)
-        \u{25CF} Data Centers: \(dataCenters)
-        \u{25CF} Latency: \(ms(orchestrator.latency))
-        \u{25CF} Active Nodes: \(orchestrator.activeNodes)
-
-        Regional breakdown:
-        \u{2022} Europe (44 countries): \(Int.random(in: 8...22))ms \u{2014} 12 centers
-        \u{2022} Americas (35 countries): \(Int.random(in: 15...35))ms \u{2014} 10 centers
-        \u{2022} Asia-Pacific (48 countries): \(Int.random(in: 18...45))ms \u{2014} 14 centers
-        \u{2022} Africa (34 countries): \(Int.random(in: 25...65))ms \u{2014} 6 centers
-        \u{2022} Middle East (14 countries): \(Int.random(in: 12...40))ms \u{2014} 5 centers
-
-        All regions operational.
-        """
+        return "The network is running great! I'm connected to \(connectedCountries) countries through \(dataCenters) data centers, and everything is fast.\n\nEurope, Americas, and Asia have the strongest connections. Want me to check performance for a specific region?"
     }
 
     private func deployResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Informa\u{021B}ii Deployment:
-
-            \u{25CF} Status: \(orchestrator.deploymentStatus.label)
-            \u{25CF} Progres: \(Int(orchestrator.deploymentProgress * 100))%
-            \u{25CF} Destina\u{021B}ie: App Store Connect (\(connectedCountries) \u{021B}\u{0103}ri)
-            \u{25CF} Noduri CDN: \(dataCenters) gata
-            \u{25CF} Distribu\u{021B}ie: Mondial\u{0103}
-
-            Sugestie: Mergi la tab-ul DEPLOY pentru a \u{00EE}ncepe un build.
-            """
+            return "Aplica\u{021B}ia este preg\u{0103}tit\u{0103} pentru deployment! Pot s\u{0103} te ajut cu procesul de publicare pe App Store \u{2014} de la build p\u{00E2}n\u{0103} la distribu\u{021B}ie \u{00EE}n \(connectedCountries) \u{021B}\u{0103}ri.\n\nVrei s\u{0103} \u{00EE}ncepem un build acum?"
         }
-        return """
-        Deployment Intelligence:
-
-        \u{25CF} Status: \(orchestrator.deploymentStatus.label)
-        \u{25CF} Progress: \(Int(orchestrator.deploymentProgress * 100))%
-        \u{25CF} Target: App Store Connect (\(connectedCountries) countries)
-        \u{25CF} CDN Nodes: \(dataCenters) ready
-        \u{25CF} Distribution: Worldwide
-
-        Suggestion: Navigate to DEPLOY tab to start a build.
-        """
+        return "The app is ready for deployment! I can help you with the App Store publishing process \u{2014} from build to distribution across \(connectedCountries) countries.\n\nWant to start a build now?"
     }
 
     private func photoResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Editor Foto \u{2014} AI:
-
-            \u{25CF} 8 Filtre Neurale (Neural, Cyber, Ethereal, Dark Matter, Synthwave, Quantum, Void)
-            \u{25CF} Ajust\u{0103}ri Inteligente (Luminozitate, Contrast, Satura\u{021B}ie, Claritate)
-            \u{25CF} Crop AI (Free, 1:1, 4:5, 16:9, 9:16, 3:2)
-            \u{25CF} 6 Efecte (Neural Glow, Cyber Grain, Glitch, Hologram, Vaporwave, Neon Edge)
-
-            Sugestie: Mergi la tab-ul PHOTO. Filtrul Neural d\u{0103} cele mai bune rezultate.
-            """
+            return "Editorul foto are filtre neurale foarte cool! Recomand filtrul Neural pentru portrete \u{0219}i Synthwave pentru peisaje.\n\nMergi la tab-ul Photo \u{0219}i \u{00EE}ncearc\u{0103}-le. Vrei sfaturi pentru editare?"
         }
-        return """
-        Photo Editor \u{2014} AI-Powered:
-
-        \u{25CF} 8 Neural Filters (Neural, Cyber, Ethereal, Dark Matter, Synthwave, Quantum, Void)
-        \u{25CF} Smart Adjustments (Brightness, Contrast, Saturation, Sharpness)
-        \u{25CF} AI Crop (Free, 1:1, 4:5, 16:9, 9:16, 3:2)
-        \u{25CF} 6 Effects (Neural Glow, Cyber Grain, Glitch, Hologram, Vaporwave, Neon Edge)
-
-        Suggestion: Go to PHOTO tab. Neural filter gives best results for portraits.
-        """
+        return "The photo editor has some really cool neural filters! I recommend the Neural filter for portraits and Synthwave for landscapes.\n\nHead to the Photo tab and try them out. Want any editing tips?"
     }
 
     private func videoResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Editor Video \u{2014} AI:
-
-            \u{25CF} Timeline Multi-track cu management clipuri
-            \u{25CF} 5 Viteze Playback (0.25x p\u{00E2}n\u{0103} la 4x)
-            \u{25CF} 6 Efecte (Slow-Mo, Reverse, Glitch, Fade In/Out, Zoom)
-            \u{25CF} 3 Straturi Audio (Original, BGM, SFX)
-            \u{25CF} Export: MP4 4K H.265 | MOV ProRes | WEBM VP9
-
-            Sugestie: \u{00CE}ncepe cu aranjarea timeline-ului, apoi adaug\u{0103} efecte.
-            """
+            return "Editorul video este puternic! Po\u{021B}i t\u{0103}ia, combina clipuri, adauga efecte ca Slow-Mo sau Glitch, \u{0219}i exporta \u{00EE}n 4K.\n\nRecomand s\u{0103} \u{00EE}ncepi cu timeline-ul \u{0219}i apoi s\u{0103} adaugi efecte. Vrei ajutor cu editarea?"
         }
-        return """
-        Video Editor \u{2014} AI-Powered:
-
-        \u{25CF} Multi-track Timeline with clip management
-        \u{25CF} 5 Playback Speeds (0.25x to 4x)
-        \u{25CF} 6 Effects (Slow-Mo, Reverse, Glitch, Fade In/Out, Zoom)
-        \u{25CF} 3 Audio Layers (Original, BGM, SFX)
-        \u{25CF} Export: MP4 4K H.265 | MOV ProRes | WEBM VP9
-
-        Suggestion: Start with timeline, then add effects. MP4 for best compatibility.
-        """
+        return "The video editor is powerful! You can trim, combine clips, add effects like Slow-Mo or Glitch, and export in 4K.\n\nI recommend starting with the timeline and then adding effects. Want help with editing?"
     }
 
     private func creatorResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Panou Creator \u{2014} 100% Acces:
-
-            Ca creator ai control total:
-
-            \u{25CF} +18 Con\u{021B}inut: \(orchestrator.adultContentEnabled ? "ACTIV \u{2014} Tot con\u{021B}inutul deblocat" : "OPRIT \u{2014} Activeaz\u{0103} din tab-ul CREATOR")
-            \u{25CF} WiFi Scanner: \(orchestrator.wifiAccessEnabled ? "ACTIV \u{2014} Re\u{021B}ele vizibile" : "OPRIT \u{2014} Activeaz\u{0103} pentru scanner WiFi")
-            \u{25CF} Webcam Feed: \(orchestrator.webcamAccessEnabled ? "ACTIV \u{2014} Camer\u{0103} accesibil\u{0103}" : "OPRIT \u{2014} Activeaz\u{0103} pentru feed camer\u{0103}")
-
-            Cum accesezi: Mergi la ultimul tab CREATOR \u{2192} Introdu codul de acces \u{2192} Activeaz\u{0103} toggle-urile.
-            """
+            return "Ca creator ai control total! Mergi la tab-ul Creator, introdu codul de acces, \u{0219}i vei avea acces la WiFi Scanner, CCTV, con\u{021B}inut +18, \u{0219}i toate instrumentele avansate.\n\nVrei s\u{0103} \u{021B}i le explic pe fiecare?"
         }
-        return """
-        Creator Panel \u{2014} 100% Access:
-
-        As creator you have full sovereign control:
-
-        \u{25CF} +18 Content: \(orchestrator.adultContentEnabled ? "ACTIVE \u{2014} All content unlocked" : "OFF \u{2014} Toggle ON in CREATOR tab")
-        \u{25CF} WiFi Scanner: \(orchestrator.wifiAccessEnabled ? "ACTIVE \u{2014} Networks visible" : "OFF \u{2014} Toggle ON for WiFi scanner")
-        \u{25CF} Webcam Feed: \(orchestrator.webcamAccessEnabled ? "ACTIVE \u{2014} Camera accessible" : "OFF \u{2014} Toggle ON for camera feed")
-
-        How to access: Go to last tab CREATOR \u{2192} Enter access code \u{2192} Toggle options.
-        """
+        return "As creator you have full control! Go to the Creator tab, enter your access code, and you'll have access to WiFi Scanner, CCTV, +18 content, and all advanced tools.\n\nWant me to walk you through each one?"
     }
 
     private func usersResponse(_ lang: String) -> String {
         if lang == "ro" {
-            return """
-            Platform\u{0103} Multi-User:
-
-            \u{25CF} Creator (tu): 100% acces la toate func\u{021B}iile
-            \u{25CF} Utilizatori Admin: Acces configurabil
-            \u{25CF} Utilizatori Normali: C\u{0103}utare \u{0219}i func\u{021B}ii publice
-            \u{25CF} Acoperire: \(connectedCountries) \u{021B}\u{0103}ri
-
-            Motorul de c\u{0103}utare \u{00EE}nva\u{021B}\u{0103} din toate interac\u{021B}iunile pentru a \u{00EE}mbun\u{0103}t\u{0103}\u{021B}i rezultatele global.
-            """
+            return "Platforma suport\u{0103} mai multe tipuri de utilizatori! Tu ca creator ai acces total, adminii au acces configurabil, iar utilizatorii normali pot c\u{0103}uta \u{0219}i folosi func\u{021B}iile publice.\n\nMotorul \u{00EE}nva\u{021B}\u{0103} din fiecare interac\u{021B}iune pentru a se \u{00EE}mbun\u{0103}t\u{0103}\u{021B}i. Vrei s\u{0103} afli mai multe?"
         }
-        return """
-        Multi-User Platform:
-
-        \u{25CF} Creator (you): Full 100% access to all features
-        \u{25CF} Admin users: Configurable access via CREATOR panel
-        \u{25CF} Regular users: Search and public features
-        \u{25CF} Coverage: \(connectedCountries) countries worldwide
-
-        The search engine learns from all interactions to improve results globally.
-        """
+        return "The platform supports multiple user types! As creator you have full access, admins get configurable permissions, and regular users can search and use public features.\n\nThe engine learns from every interaction to improve. Want to know more?"
     }
 
     private func trendingResponse(_ lang: String) -> String {
