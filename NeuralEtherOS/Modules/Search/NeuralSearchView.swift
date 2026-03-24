@@ -389,44 +389,91 @@ struct NeuralSearchView: View {
     }
 
     // MARK: - AI Agent Brain (Multilingual)
+    // IMPORTANT: Check SPECIFIC topics FIRST, then broad/generic catches LAST.
+    // This prevents "cum e vremea" from matching "cum e" (status) instead of "vreme" (weather).
 
     private func agentProcess(_ query: String) -> (String, Int, [String]) {
         let q = query.lowercased()
         let lang = detectLanguage(q)
 
-        // Greetings
-        if matchesAny(q, ["hello", "hi ", "hey", "salut", "buna", "hola", "bonjour", "hallo", "ciao", "ola", "yo", "sup", "howdy"]) {
+        // --- TIER 1: Exact / very specific matches (greetings, thanks, identity) ---
+
+        // Greetings (only if the message is short or starts with greeting)
+        if q.count < 20 && matchesAny(q, ["hello", "hi", "hey", "salut", "buna", "hola", "bonjour", "hallo", "ciao", "ola", "yo", "sup", "howdy"]) {
             return (greetingResponse(lang), 1, ["AI", "GLOBAL"])
         }
 
         // Thanks
-        if matchesAny(q, ["thank", "mersi", "multumesc", "gracias", "merci", "danke", "grazie", "obrigado", "thx", "ty"]) {
+        if matchesAny(q, ["thank", "mersi", "multumesc", "gracias", "merci", "danke", "grazie", "obrigado", "thx"]) {
             return (thanksResponse(lang), 1, ["AI"])
         }
 
         // About / Identity
-        if matchesAny(q, ["who are you", "what are you", "cine esti", "ce esti", "tu cine", "name", "introduce", "tell me about you", "presenta"]) {
+        if matchesAny(q, ["who are you", "what are you", "cine esti", "ce esti", "tu cine", "introduce yourself", "tell me about you", "presenta"]) {
             return (aboutResponse(lang), 1, ["AI", "CORE"])
         }
 
-        // System status
-        if matchesAny(q, ["status", "system", "stare", "starea", "sistem", "estado", "systeme", "diagnostics", "diagnostic", "how are", "cum e", "cum esti", "cum merge", "health", "performan"]) {
-            return (statusResponse(lang), 47, ["GLOBAL", "EU", "US", "ASIA"])
+        // --- TIER 2: Specific topic keywords (weather, math, time, code, music, etc.) ---
+        // These MUST come before broad catches like "status" or "error" or "cum e"
+
+        // Weather — check BEFORE status because "cum e vremea" contains "cum e"
+        if matchesAny(q, ["weather", "vreme", "vremea", "meteo", "temperatura", "rain", "ploaie", "soare", "sun", "clima", "tiempo", "wetter", "cold", "warm", "snow", "zapada", "nori", "cloud", "forecast", "prognoz"]) {
+            return (weatherResponse(lang, query), Int.random(in: 30...80), ["WEATHER", "GLOBAL"])
         }
 
-        // Error scanning
-        if matchesAny(q, ["error", "log", "warn", "scan", "problem", "issue", "eroare", "erori", "bug", "crash", "fail", "gresea", "nu merge", "broken", "fix"]) {
-            return (errorScanResponse(lang), 175, ["GLOBAL", "SCAN"])
+        // Math / calculations
+        if matchesAny(q, ["calcul", "math", "plus", "minus", "inmulti", "imparti", "cat face", "cat e", "how much is", "solve", "equation", "radical", "sqrt"]) || q.contains("+") || q.contains("=") {
+            return (mathResponse(lang, query), 1, ["COMPUTE"])
         }
 
-        // Security
-        if matchesAny(q, ["security", "panic", "vault", "safe", "protect", "securitate", "siguranta", "firewall", "encrypt", "hack", "seguridad", "securite", "sicherheit", "password", "parola", "attack", "threat"]) {
-            return (securityResponse(lang), 94, ["SECURITY", "GLOBAL", "ENCRYPTED"])
+        // Time / Date
+        if matchesAny(q, ["what time", "ora exact", "ceas", "cat e ceasul", "heure", "hora", "uhr", "what day", "ce zi", "azi", "ce data"]) {
+            return (timeResponse(lang), 1, ["TIME", "GLOBAL"])
         }
 
-        // Network / Countries
-        if matchesAny(q, ["network", "latency", "connection", "global", "country", "countries", "tari", "retea", "ping", "node", "server", "bandwidth", "red", "reseau", "netzwerk", "internet", "speed", "viteza"]) {
-            return (networkResponse(lang), 175, ["EU", "US", "APAC", "AFRICA", "ME"])
+        // Code / Programming
+        if matchesAny(q, ["code", "program", "swift", "python", "javascript", "java", "html", "css", "api", "function", "debug", "coding", "develop", "compile", "algoritm"]) {
+            return (codeResponse(lang, query), Int.random(in: 40...150), ["CODE", "AI", "DEV"])
+        }
+
+        // Music
+        if matchesAny(q, ["music", "song", "playlist", "spotify", "muzica", "cantec", "artist", "album", "listen", "youtube", "melodie"]) {
+            return (musicResponse(lang), Int.random(in: 20...60), ["MUSIC", "ENTERTAINMENT"])
+        }
+
+        // News
+        if matchesAny(q, ["news", "stiri", "stirile", "world news", "eveniment", "razboi", "war", "politics", "politic", "econom"]) {
+            return (newsResponse(lang), Int.random(in: 80...200), ["NEWS", "GLOBAL", "LIVE"])
+        }
+
+        // AI / Tech
+        if matchesAny(q, ["artificial", "machine learning", "neural network", "gpt", "chatgpt", "openai", "inteligenta artificiala", "robot", "automat"]) {
+            return (aiTechResponse(lang, query), Int.random(in: 50...175), ["AI", "TECH", "RESEARCH"])
+        }
+
+        // Fun / Jokes
+        if matchesAny(q, ["joke", "joc", "joac", "funny", "laugh", "gluma", "bancuri", "amuzant"]) {
+            return (funResponse(lang), Int.random(in: 10...30), ["FUN", "AI"])
+        }
+
+        // Health / Fitness
+        if matchesAny(q, ["health", "sanatate", "doctor", "medic", "exercise", "sport", "fitness", "diet", "calorie", "sleep", "gym", "antrenament"]) {
+            return (healthResponse(lang), Int.random(in: 30...90), ["HEALTH", "GLOBAL"])
+        }
+
+        // Photo
+        if matchesAny(q, ["photo", "image", "picture", "filter", "poza", "poze", "imagine", "foto", "imagen", "bild", "fotografie"]) {
+            return (photoResponse(lang), 6, ["PHOTO", "AI", "GPU"])
+        }
+
+        // Video
+        if matchesAny(q, ["video", "film", "clip", "timeline", "movie", "filmare", "pelicula", "montaj"]) {
+            return (videoResponse(lang), 8, ["VIDEO", "AI", "RENDER"])
+        }
+
+        // Creator panel
+        if matchesAny(q, ["creator", "admin", "+18", "18+", "webcam", "wifi", "camera", "cctv", "scanner", "panou", "panel creator"]) {
+            return (creatorResponse(lang), 3, ["CREATOR", "100%"])
         }
 
         // Deployment
@@ -434,84 +481,47 @@ struct NeuralSearchView: View {
             return (deployResponse(lang), 12, ["DEPLOY", "CDN", "GLOBAL"])
         }
 
-        // Photo
-        if matchesAny(q, ["photo", "image", "picture", "filter", "poza", "poze", "imagine", "foto", "imagen", "bild"]) {
-            return (photoResponse(lang), 6, ["PHOTO", "AI", "GPU"])
-        }
-
-        // Video
-        if matchesAny(q, ["video", "film", "clip", "timeline", "movie", "filmare", "pelicula", "film"]) {
-            return (videoResponse(lang), 8, ["VIDEO", "AI", "RENDER"])
-        }
-
-        // Creator panel
-        if matchesAny(q, ["creator", "admin", "+18", "18+", "webcam", "wifi", "camera", "acces", "control", "permis", "panel", "functii", "administra", "cctv", "scanner", "panou"]) {
-            return (creatorResponse(lang), 3, ["CREATOR", "100%"])
-        }
-
-        // Users
-        if matchesAny(q, ["user", "utilizator", "people", "multi", "usuario", "utilisateur"]) {
-            return (usersResponse(lang), 25, ["USERS", "GLOBAL", "AI"])
-        }
-
         // Trending
-        if matchesAny(q, ["trend", "popular", "hot", "nou", "tendencia", "tendance", "viral", "top", "best", "latest", "newest"]) {
+        if matchesAny(q, ["trend", "popular", "viral", "top 10", "best of", "latest", "newest", "ce e nou", "ce se poarta"]) {
             return (trendingResponse(lang), 1240, ["TRENDING", "GLOBAL", "AI"])
         }
 
-        // Help / capabilities
-        if matchesAny(q, ["help", "what can", "feature", "capabilit", "ajutor", "ce poti", "cum functioneaz", "option", "ayuda", "aide", "hilfe", "what do you do", "how do", "cum fac"]) {
-            return (helpResponse(lang), 12, ["AI", "GLOBAL", "LEARNING"])
-        }
-
         // Forge / Tasks
-        if matchesAny(q, ["forge", "creative", "task", "synthesis", "process", "sarcini", "generate", "create", "make"]) {
+        if matchesAny(q, ["forge", "synthesis", "sarcini", "generate"]) {
             return (forgeResponse(lang), 8, ["FORGE", "DISTRIBUTED"])
         }
 
-        // Weather / General knowledge simulation
-        if matchesAny(q, ["weather", "vreme", "meteo", "temperatura", "rain", "sun", "clima", "tiempo", "wetter", "cold", "warm", "snow"]) {
-            return (weatherResponse(lang, query), Int.random(in: 30...80), ["WEATHER", "GLOBAL"])
+        // Users
+        if matchesAny(q, ["user", "utilizator", "usuario", "utilisateur"]) {
+            return (usersResponse(lang), 25, ["USERS", "GLOBAL", "AI"])
         }
 
-        // Math / calculations
-        if matchesAny(q, ["calcul", "math", "plus", "minus", "inmulti", "imparti", "=", "cat face", "cat e", "how much", "solve", "equation"]) {
-            return (mathResponse(lang, query), 1, ["COMPUTE"])
+        // Help / capabilities
+        if matchesAny(q, ["help", "what can you", "feature", "capabilit", "ajutor", "ce poti", "cum functioneaz", "ayuda", "aide", "hilfe", "what do you do"]) {
+            return (helpResponse(lang), 12, ["AI", "GLOBAL", "LEARNING"])
         }
 
-        // Time
-        if matchesAny(q, ["time", "ora", "ceas", "date", "data", "heure", "hora", "uhr", "day", "today", "azi", "acum"]) {
-            return (timeResponse(lang), 1, ["TIME", "GLOBAL"])
+        // --- TIER 3: Broad / generic catches (status, error, security, network) ---
+        // These use short keywords that could accidentally match specific queries above.
+
+        // System status — ONLY match when user really asks about the system
+        if matchesAny(q, ["status", "stare sistem", "starea sistem", "system status", "diagnostics", "diagnostic", "cum merge sistemul", "cum functioneaza"]) {
+            return (statusResponse(lang), 47, ["GLOBAL", "EU", "US", "ASIA"])
         }
 
-        // Code / Programming
-        if matchesAny(q, ["code", "program", "swift", "python", "javascript", "java", "html", "css", "api", "function", "debug", "coding", "develop"]) {
-            return (codeResponse(lang, query), Int.random(in: 40...150), ["CODE", "AI", "DEV"])
+        // Error scanning
+        if matchesAny(q, ["error", "eroare", "erori", "bug", "crash", "fail", "nu merge", "broken", "problema tehnic"]) {
+            return (errorScanResponse(lang), 175, ["GLOBAL", "SCAN"])
         }
 
-        // Music
-        if matchesAny(q, ["music", "song", "playlist", "spotify", "muzica", "cantec", "artist", "album", "listen", "youtube"]) {
-            return (musicResponse(lang), Int.random(in: 20...60), ["MUSIC", "ENTERTAINMENT"])
+        // Security
+        if matchesAny(q, ["security", "securitate", "siguranta", "firewall", "encrypt", "hack", "password", "parola", "attack", "threat", "amenintare"]) {
+            return (securityResponse(lang), 94, ["SECURITY", "GLOBAL", "ENCRYPTED"])
         }
 
-        // News
-        if matchesAny(q, ["news", "stiri", "world", "lume", "event", "war", "politics", "economy", "econom", "politic"]) {
-            return (newsResponse(lang), Int.random(in: 80...200), ["NEWS", "GLOBAL", "LIVE"])
-        }
-
-        // AI / Tech
-        if matchesAny(q, ["artificial", "machine learning", "neural", "gpt", "chatgpt", "openai", "google", "apple", "microsoft", "robot", "automat"]) {
-            return (aiTechResponse(lang, query), Int.random(in: 50...175), ["AI", "TECH", "RESEARCH"])
-        }
-
-        // Fun / Jokes
-        if matchesAny(q, ["game", "play", "fun", "joke", "joc", "joac", "funny", "laugh", "entertainment", "gluma"]) {
-            return (funResponse(lang), Int.random(in: 10...30), ["FUN", "AI"])
-        }
-
-        // Health / Fitness
-        if matchesAny(q, ["health", "sanatate", "doctor", "medic", "exercise", "sport", "fitness", "diet", "calorie", "sleep", "gym"]) {
-            return (healthResponse(lang), Int.random(in: 30...90), ["HEALTH", "GLOBAL"])
+        // Network
+        if matchesAny(q, ["network", "latency", "retea", "reteaua", "ping", "bandwidth", "internet speed", "viteza internet"]) {
+            return (networkResponse(lang), 175, ["EU", "US", "APAC", "AFRICA", "ME"])
         }
 
         // Default - intelligent response to ANY query
@@ -736,16 +746,66 @@ struct NeuralSearchView: View {
     }
 
     private func weatherResponse(_ lang: String, _ query: String) -> String {
+        // Extract city name from query
+        let q = query.lowercased()
+        let weatherWords = ["weather", "vreme", "vremea", "meteo", "temperatura", "rain", "ploaie", "soare", "sun", "clima", "tiempo", "wetter", "forecast", "prognoz", "cum", "e", "la", "in", "for", "at", "de", "the", "what", "is", "care", "ce"]
+        let words = q.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty && $0.count > 1 }
+        let cityWords = words.filter { !weatherWords.contains($0) }
+        let city = cityWords.isEmpty ? "" : cityWords.map { $0.capitalized }.joined(separator: " ")
+
+        let temp = Int.random(in: 8...26)
+        let conditions = lang == "ro"
+            ? ["Partial insorit", "Innorat", "Senin", "Cer variabil", "Ceata usoara", "Ploi usoare"][Int.random(in: 0...5)]
+            : ["Partly sunny", "Cloudy", "Clear skies", "Variable", "Light fog", "Light rain"][Int.random(in: 0...5)]
+        let humidity = Int.random(in: 40...85)
+        let wind = Double.random(in: 5...25)
+
+        if !city.isEmpty {
+            if lang == "ro" {
+                return """
+                Meteo \(city) (date simulate):
+
+                \u{1F321} Temperatura: \(temp)\u{00B0}C
+                \u{2601} Conditii: \(conditions)
+                \u{1F4A7} Umiditate: \(humidity)%
+                \u{1F32C} Vant: \(String(format: "%.0f", wind)) km/h
+
+                Prognoza urmatoarele ore:
+                \u{2022} +1h: \(temp + Int.random(in: -2...2))\u{00B0}C
+                \u{2022} +3h: \(temp + Int.random(in: -3...3))\u{00B0}C
+                \u{2022} +6h: \(temp + Int.random(in: -4...4))\u{00B0}C
+
+                Nota: Date simulate din \(connectedCountries) tari. Poate fi conectat la API-uri meteo reale.
+                """
+            }
+            return """
+            Weather for \(city) (simulated data):
+
+            \u{1F321} Temperature: \(temp)\u{00B0}C
+            \u{2601} Conditions: \(conditions)
+            \u{1F4A7} Humidity: \(humidity)%
+            \u{1F32C} Wind: \(String(format: "%.0f", wind)) km/h
+
+            Forecast next hours:
+            \u{2022} +1h: \(temp + Int.random(in: -2...2))\u{00B0}C
+            \u{2022} +3h: \(temp + Int.random(in: -3...3))\u{00B0}C
+            \u{2022} +6h: \(temp + Int.random(in: -4...4))\u{00B0}C
+
+            Note: Simulated data from \(connectedCountries) countries. Can connect to real weather APIs.
+            """
+        }
+
+        // No city specified — show global weather
         let temps = ["\(Int.random(in: 18...28))\u{00B0}C", "\(Int.random(in: 22...32))\u{00B0}C", "\(Int.random(in: 5...15))\u{00B0}C"]
         if lang == "ro" {
             return """
-            Meteo Global (date simulate din \(connectedCountries) \u{021B}\u{0103}ri):
+            Meteo Global (date simulate din \(connectedCountries) tari):
 
-            \u{2022} Europa: \(temps[0]) \u{2014} Par\u{021B}ial \u{00EE}nsorit
+            \u{2022} Europa: \(temps[0]) \u{2014} Partial insorit
             \u{2022} America de Nord: \(temps[1]) \u{2014} Senin
             \u{2022} Asia: \(temps[2]) \u{2014} Variabil
 
-            Not\u{0103}: Acestea sunt date simulate. Motorul de c\u{0103}utare poate fi conectat la API-uri meteo reale \u{00EE}n viitor.
+            Spune-mi un oras specific si iti dau detalii!
             """
         }
         return """
@@ -755,7 +815,7 @@ struct NeuralSearchView: View {
         \u{2022} North America: \(temps[1]) \u{2014} Clear
         \u{2022} Asia: \(temps[2]) \u{2014} Variable
 
-        Note: This is simulated data. The search engine can be connected to real weather APIs in the future.
+        Tell me a specific city and I'll give you details!
         """
     }
 
