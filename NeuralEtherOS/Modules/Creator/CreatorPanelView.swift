@@ -1064,6 +1064,8 @@ struct CreatorPanelView: View {
         }
     }
 
+    @State private var cctvNoiseOffset: Double = 0.0
+
     private func cctvLiveView(camera: CCTVCamera) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             // Live feed
@@ -1073,25 +1075,35 @@ struct CreatorPanelView: View {
                     .aspectRatio(16/9, contentMode: .fit)
                     .overlay(
                         ZStack {
-                            // Scanline effect
-                            VStack(spacing: 3) {
-                                ForEach(0..<20, id: \.self) { _ in
-                                    Rectangle()
-                                        .fill(hackerGreen.opacity(Double.random(in: 0.01...0.06)))
-                                        .frame(height: 1)
+                            // Noise/static background (simulates camera feed)
+                            VStack(spacing: 0) {
+                                ForEach(0..<30, id: \.self) { row in
+                                    HStack(spacing: 0) {
+                                        ForEach(0..<20, id: \.self) { col in
+                                            Rectangle()
+                                                .fill(hackerGreen.opacity(Double.random(in: 0.02...0.12)))
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        }
+                                    }
+                                    .frame(maxHeight: .infinity)
                                 }
                             }
 
+                            // Center camera icon overlay
                             VStack(spacing: Spacing.sm) {
                                 Image(systemName: camera.icon)
                                     .font(.system(size: 36))
-                                    .foregroundColor(hackerGreen.opacity(0.4))
-                                Text("LIVE STREAM \u{2014} \(camera.name)")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundColor(hackerGreen.opacity(0.7))
+                                    .foregroundColor(hackerGreen.opacity(0.5))
+                                    .shadow(color: hackerGreen.opacity(0.3), radius: 10)
+                                Text("\u{25CF} LIVE \u{2014} \(camera.name)")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundColor(hackerGreen)
                                 Text(camera.streamURL)
                                     .font(.system(size: 7, design: .monospaced))
                                     .foregroundColor(hackerDimGreen)
+                                Text("\(camera.resolution) | \(camera.fps) FPS | \(camera.manufacturer)")
+                                    .font(.system(size: 7, design: .monospaced))
+                                    .foregroundColor(hackerGreen.opacity(0.4))
                             }
 
                             // Top-left: camera info
@@ -1707,54 +1719,286 @@ struct CreatorPanelView: View {
 
     // MARK: - Tab 7: +18 Content
 
+    @State private var adultCategories: [String: Bool] = [
+        "Movies & Shows": false,
+        "Live Streaming": false,
+        "Premium Content": false,
+        "VR Experiences": false,
+        "Explicit Images": false,
+        "Dating & Chat": false,
+    ]
+    @State private var adultAgeVerified: Bool = false
+    @State private var adultFilterLevel: Double = 3.0
+    @State private var adultShowPreview: String? = nil
+
     private var adultContentTab: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             hackerSection("+18 ADULT CONTENT CONTROL", icon: "eye.fill")
 
-            // Master toggle
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("+18 CONTENT FILTER")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(hackerGreen)
-                    Text(orchestrator.adultContentEnabled ? "UNLOCKED \u{2014} Age-restricted content visible" : "LOCKED \u{2014} Content filtered")
-                        .font(.system(size: 8, design: .monospaced))
-                        .foregroundColor(orchestrator.adultContentEnabled ? hackerAmber : hackerDimGreen)
+            // Age verification
+            if !adultAgeVerified {
+                VStack(spacing: Spacing.md) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 30))
+                        .foregroundColor(hackerRed)
+                    Text("AGE VERIFICATION REQUIRED")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerRed)
+                    Text("You must verify you are 18+ to access this section.")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                        .multilineTextAlignment(.center)
+                    Button {
+                        withAnimation { adultAgeVerified = true }
+                        logActivity("+18_AGE_VERIFIED")
+                    } label: {
+                        Text("I AM 18+ \u{2014} VERIFY & ENTER")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerBG)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.md)
+                            .background(hackerRed)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                    .buttonStyle(.plain)
                 }
-                Spacer()
-                Toggle("", isOn: $orchestrator.adultContentEnabled)
+                .padding(Spacing.lg)
+                .background(hackerRed.opacity(0.05))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(hackerRed.opacity(0.3), lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            } else {
+                // Master toggle
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("+18 CONTENT FILTER")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                        Text(orchestrator.adultContentEnabled ? "UNLOCKED \u{2014} Age-restricted content visible" : "LOCKED \u{2014} All content filtered")
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(orchestrator.adultContentEnabled ? hackerRed : hackerDimGreen)
+                    }
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { orchestrator.adultContentEnabled },
+                        set: { newVal in
+                            orchestrator.adultContentEnabled = newVal
+                            logActivity(newVal ? "+18_UNLOCKED" : "+18_LOCKED")
+                        }
+                    ))
                     .toggleStyle(HackerToggleStyle())
                     .labelsHidden()
-            }
-            .padding(Spacing.md)
-            .background(hackerGreen.opacity(0.03))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.1), lineWidth: 0.5))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                .padding(Spacing.md)
+                .background(orchestrator.adultContentEnabled ? hackerRed.opacity(0.05) : hackerGreen.opacity(0.03))
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+                    orchestrator.adultContentEnabled ? hackerRed.opacity(0.3) : hackerGreen.opacity(0.1), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
 
-            if orchestrator.adultContentEnabled {
-                VStack(spacing: Spacing.sm) {
-                    adultCat("Movies & Shows", 12847, hackerAmber)
-                    adultCat("Streaming Live", 342, hackerRed)
-                    adultCat("Premium Content", 8923, hackerCyan)
-                    adultCat("VR Experience", 1456, hackerGreen)
+                if orchestrator.adultContentEnabled {
+                    // Filter level
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        HStack {
+                            Text("FILTER LEVEL")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerAmber)
+                            Spacer()
+                            Text(filterLevelText)
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(filterLevelColor)
+                        }
+                        Slider(value: $adultFilterLevel, in: 1...5, step: 1)
+                            .tint(hackerRed)
+                        HStack {
+                            Text("SOFT")
+                                .font(.system(size: 7, design: .monospaced))
+                                .foregroundColor(hackerDimGreen)
+                            Spacer()
+                            Text("EXTREME")
+                                .font(.system(size: 7, design: .monospaced))
+                                .foregroundColor(hackerRed)
+                        }
+                    }
+                    .padding(Spacing.md)
+                    .background(hackerRed.opacity(0.03))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                    // Categories with toggles
+                    VStack(spacing: Spacing.sm) {
+                        Text("CONTENT CATEGORIES")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        adultCategoryRow("Movies & Shows", icon: "film.fill", count: 12847, color: hackerAmber)
+                        adultCategoryRow("Live Streaming", icon: "video.fill", count: 342, color: hackerRed)
+                        adultCategoryRow("Premium Content", icon: "star.fill", count: 8923, color: hackerCyan)
+                        adultCategoryRow("VR Experiences", icon: "visionpro.fill", count: 1456, color: hackerGreen)
+                        adultCategoryRow("Explicit Images", icon: "photo.fill", count: 45230, color: hackerAmber)
+                        adultCategoryRow("Dating & Chat", icon: "bubble.left.and.bubble.right.fill", count: 5678, color: hackerRed)
+                    }
+
+                    // Preview section
+                    if let preview = adultShowPreview {
+                        VStack(alignment: .leading, spacing: Spacing.sm) {
+                            HStack {
+                                Text("PREVIEW: \(preview)")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundColor(hackerAmber)
+                                Spacer()
+                                Button {
+                                    adultShowPreview = nil
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(hackerRed)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            // Simulated content grid
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
+                                ForEach(0..<6, id: \.self) { i in
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(hackerRed.opacity(Double.random(in: 0.05...0.15)))
+                                            .aspectRatio(3/4, contentMode: .fit)
+                                        VStack(spacing: 2) {
+                                            Image(systemName: "play.circle.fill")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(hackerRed.opacity(0.5))
+                                            Text("ITEM_\(i + 1)")
+                                                .font(.system(size: 6, weight: .bold, design: .monospaced))
+                                                .foregroundColor(hackerRed.opacity(0.4))
+                                        }
+                                    }
+                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerRed.opacity(0.2), lineWidth: 0.5))
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
+                            }
+                        }
+                        .padding(Spacing.md)
+                        .background(hackerRed.opacity(0.03))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerRed.opacity(0.2), lineWidth: 0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+
+                    // Stats
+                    VStack(spacing: Spacing.sm) {
+                        Text("CONTENT STATISTICS")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        adultStatRow("Total Items", "74,476")
+                        adultStatRow("Active Streams", "342")
+                        adultStatRow("Blocked Today", "12,847")
+                        adultStatRow("Storage Used", "2.4 TB")
+                        adultStatRow("Users Online", "8,923")
+                        adultStatRow("Reports Pending", "47")
+                    }
+                    .padding(Spacing.md)
+                    .background(hackerGreen.opacity(0.03))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                } else {
+                    // Locked state
+                    VStack(spacing: Spacing.md) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(hackerDimGreen)
+                        Text("CONTENT FILTER ACTIVE")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                        Text("Toggle the switch above to manage adult content")
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(Spacing.xl)
                 }
             }
         }
     }
 
-    private func adultCat(_ name: String, _ count: Int, _ color: Color) -> some View {
+    private var filterLevelText: String {
+        switch Int(adultFilterLevel) {
+        case 1: return "SOFT"
+        case 2: return "MILD"
+        case 3: return "MODERATE"
+        case 4: return "HARD"
+        case 5: return "EXTREME"
+        default: return "MODERATE"
+        }
+    }
+
+    private var filterLevelColor: Color {
+        switch Int(adultFilterLevel) {
+        case 1: return hackerGreen
+        case 2: return hackerAmber
+        case 3: return hackerAmber
+        case 4: return hackerRed
+        case 5: return hackerRed
+        default: return hackerAmber
+        }
+    }
+
+    private func adultCategoryRow(_ name: String, icon: String, count: Int, color: Color) -> some View {
         HStack {
-            Text(name)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundColor(hackerGreen)
-            Spacer()
-            Text("\(count) items")
+            Toggle(isOn: Binding(
+                get: { adultCategories[name] ?? false },
+                set: { newVal in
+                    adultCategories[name] = newVal
+                    logActivity("+18_CAT_\(newVal ? "ON" : "OFF"): \(name)")
+                }
+            )) {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10))
+                        .foregroundColor(adultCategories[name] == true ? color : hackerDimGreen)
+                        .frame(width: 16)
+                    Text(name)
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundColor(adultCategories[name] == true ? hackerGreen : hackerDimGreen)
+                }
+            }
+            .toggleStyle(HackerToggleStyle())
+
+            Text("\(count)")
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundColor(color)
+                .frame(width: 50, alignment: .trailing)
+
+            Button {
+                if adultShowPreview == name {
+                    adultShowPreview = nil
+                } else {
+                    adultShowPreview = name
+                    logActivity("+18_PREVIEW: \(name)")
+                }
+            } label: {
+                Text(adultShowPreview == name ? "HIDE" : "VIEW")
+                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    .foregroundColor(color)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(color.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            }
+            .buttonStyle(.plain)
         }
         .padding(Spacing.sm)
-        .background(color.opacity(0.04))
+        .background(adultCategories[name] == true ? color.opacity(0.04) : hackerGreen.opacity(0.02))
         .clipShape(RoundedRectangle(cornerRadius: 3))
+    }
+
+    private func adultStatRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(hackerDimGreen)
+            Spacer()
+            Text(value)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(hackerGreen)
+        }
     }
 
     // MARK: - Tab 8: System Override
