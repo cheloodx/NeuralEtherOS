@@ -7,55 +7,55 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BB0000000000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* Assets.xcassets */; };
-		25ABC863580C7CDA3D01F6BC /* NeuralEtherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04587231B06430991E71FB5C /* NeuralEtherApp.swift */; };
-		ACD839FBDB3D1EFBFF8AF8A9 /* NeuralOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1DC0A6782817C11BBF747F /* NeuralOrchestrator.swift */; };
-		0D31921B8C9156CAC5DE45D4 /* MainContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1702579FDCE2DE985CB361A6 /* MainContainerView.swift */; };
-		AF2E4B77CEA6E4BB535A7360 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3946F7684F7AEF14498243C /* DesignTokens.swift */; };
-		493CBE053C43F1C77C828F8C /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278BCF78D886A3E1D738AA3D /* Typography.swift */; };
-		224E04E87ACBF7274CB5AD97 /* GlassmorphismModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684AF2B643B8C187B9000D3F /* GlassmorphismModifier.swift */; };
-		D365287361585486380CB8F5 /* NeuralButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCDE4335A8DC79C36DD4CDA1 /* NeuralButtonStyle.swift */; };
-		DFD0DE2E93B2E61757DD921D /* NeuralTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AF21F66D870E6F509742273 /* NeuralTrace.swift */; };
-		662958B69D09B1AEE2330AB6 /* CircularProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB9EDE3A29B7DBB79371FA2 /* CircularProgressView.swift */; };
-		A26FBF5FEF2229465E6E2435 /* StatBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BFA1D524F852D445F48519 /* StatBox.swift */; };
-		447B9233791A90C0B544BBD8 /* InsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C67CFB674DB27CF94402788E /* InsightCard.swift */; };
-		FA2BC43DEE8D6F9D50298EA2 /* GhostTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB34029D33104BEB495B818 /* GhostTextField.swift */; };
-		AB8567D0AAD28F918CEBB5F2 /* ProcessChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49E302F9B15E1A55F7F3DAE /* ProcessChip.swift */; };
-		9B396BE9BA9AA3C02A8F4D41 /* LogListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CC7FB03B54D51B0C1B57858 /* LogListView.swift */; };
-		0C5F35D18B097AFA94626E33 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5E790AD1238D37E508A6916 /* DashboardView.swift */; };
-		9A283E6B2050BB88868D60D1 /* CreativeForgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 641C6CA9F68C166D8C3E4571 /* CreativeForgeView.swift */; };
-		0AC26410A55C0AE22931412D /* SecurityVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01759635C365496610097A59 /* SecurityVaultView.swift */; };
-		E6B738BE267D7D8899E1FAEA /* DeploymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5DC669DE1B55A42C2E68AEE /* DeploymentHubView.swift */; };
-		94B8FF22E817BFF42333E559 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68AB6A5E8F0A7BE65DAC0D6 /* Color+Hex.swift */; };
+		A57390FCF297F44A8BE26150 /* NeuralEtherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20D65C79A9EAF8FA5360F1A6 /* NeuralEtherApp.swift */; };
+		DAE674CC9023273866B5B783 /* NeuralOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD4ECE77081C75D20E5A5AB0 /* NeuralOrchestrator.swift */; };
+		BD41A15FD02F3070A7542C32 /* MainContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B86D2F3FA14F0FAA19A6CCDB /* MainContainerView.swift */; };
+		88111698888F9DABD9AB3728 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = E61DFAC20BE6A0AD0385F507 /* DesignTokens.swift */; };
+		F9CF613BCD15C4E0D9764C57 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4D82C7A8C41D884EFD0EAC /* Typography.swift */; };
+		F82168BB2F792A09AA9EB130 /* GlassmorphismModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459BDBF2A8B0239C2BD4A5E4 /* GlassmorphismModifier.swift */; };
+		813754ED71A690299C1988F1 /* NeuralButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0754B4E151065E5DC7FDFC5 /* NeuralButtonStyle.swift */; };
+		524EA850591372F5E12A8971 /* NeuralTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9CF837F2B5E729A40C3A69 /* NeuralTrace.swift */; };
+		99A21712AABB115C56BD700B /* CircularProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082E26CDA1C4B78EC7F7B9B6 /* CircularProgressView.swift */; };
+		433007093B96A2AEC35A1F68 /* StatBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAA299917DB2A09CFE695797 /* StatBox.swift */; };
+		F479B4E3DF44B8032D6AD2D6 /* InsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C5CDA62AA6339B80D03DCF /* InsightCard.swift */; };
+		A0E50CF6268AF22AA4682A68 /* GhostTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1DF73B902DDAAC553E618C5 /* GhostTextField.swift */; };
+		999F6C298FE90C9AD8535A17 /* ProcessChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79713728EDEFE7DD3E77E93B /* ProcessChip.swift */; };
+		30C55041EEF24C104A99BFCD /* LogListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A9745FF4B50AD3DFDAD7A5C /* LogListView.swift */; };
+		4D1A0B5E095A93A49D165D07 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE218B517E62F5E5FF54393 /* DashboardView.swift */; };
+		AB1D13059555A2772F0400B6 /* CreativeForgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E115986A3059610C395E466 /* CreativeForgeView.swift */; };
+		65EF848F6C03FD5EBFAA0FF6 /* SecurityVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85CB9A31F8F793D42C925A63 /* SecurityVaultView.swift */; };
+		8FB4156762CD894FB5894A69 /* DeploymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */; };
+		95197EF0C00D47E79F9B04B3 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */; };
+		1253613CF10DAF2FA7DE13DE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D5DE88EA417BDF66BA3E1894 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		04587231B06430991E71FB5C /* NeuralEtherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralEtherApp.swift; sourceTree = "<group>"; };
-		5A1DC0A6782817C11BBF747F /* NeuralOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralOrchestrator.swift; sourceTree = "<group>"; };
-		1702579FDCE2DE985CB361A6 /* MainContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContainerView.swift; sourceTree = "<group>"; };
-		E3946F7684F7AEF14498243C /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
-		278BCF78D886A3E1D738AA3D /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
-		684AF2B643B8C187B9000D3F /* GlassmorphismModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassmorphismModifier.swift; sourceTree = "<group>"; };
-		DCDE4335A8DC79C36DD4CDA1 /* NeuralButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralButtonStyle.swift; sourceTree = "<group>"; };
-		8AF21F66D870E6F509742273 /* NeuralTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralTrace.swift; sourceTree = "<group>"; };
-		CBB9EDE3A29B7DBB79371FA2 /* CircularProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularProgressView.swift; sourceTree = "<group>"; };
-		55BFA1D524F852D445F48519 /* StatBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatBox.swift; sourceTree = "<group>"; };
-		C67CFB674DB27CF94402788E /* InsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightCard.swift; sourceTree = "<group>"; };
-		9DB34029D33104BEB495B818 /* GhostTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostTextField.swift; sourceTree = "<group>"; };
-		F49E302F9B15E1A55F7F3DAE /* ProcessChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessChip.swift; sourceTree = "<group>"; };
-		1CC7FB03B54D51B0C1B57858 /* LogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogListView.swift; sourceTree = "<group>"; };
-		B5E790AD1238D37E508A6916 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
-		641C6CA9F68C166D8C3E4571 /* CreativeForgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreativeForgeView.swift; sourceTree = "<group>"; };
-		01759635C365496610097A59 /* SecurityVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityVaultView.swift; sourceTree = "<group>"; };
-		C5DC669DE1B55A42C2E68AEE /* DeploymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeploymentHubView.swift; sourceTree = "<group>"; };
-		F68AB6A5E8F0A7BE65DAC0D6 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color+Hex.swift; sourceTree = "<group>"; };
-		71CCD365E3A654DA84DBA191 /* NeuralEtherOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeuralEtherOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA0000000000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		BB0000000000000000000002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		20D65C79A9EAF8FA5360F1A6 /* NeuralEtherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralEtherApp.swift; sourceTree = "<group>"; };
+		DD4ECE77081C75D20E5A5AB0 /* NeuralOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralOrchestrator.swift; sourceTree = "<group>"; };
+		B86D2F3FA14F0FAA19A6CCDB /* MainContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContainerView.swift; sourceTree = "<group>"; };
+		E61DFAC20BE6A0AD0385F507 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		7B4D82C7A8C41D884EFD0EAC /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		459BDBF2A8B0239C2BD4A5E4 /* GlassmorphismModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassmorphismModifier.swift; sourceTree = "<group>"; };
+		D0754B4E151065E5DC7FDFC5 /* NeuralButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralButtonStyle.swift; sourceTree = "<group>"; };
+		0F9CF837F2B5E729A40C3A69 /* NeuralTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralTrace.swift; sourceTree = "<group>"; };
+		082E26CDA1C4B78EC7F7B9B6 /* CircularProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularProgressView.swift; sourceTree = "<group>"; };
+		CAA299917DB2A09CFE695797 /* StatBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatBox.swift; sourceTree = "<group>"; };
+		92C5CDA62AA6339B80D03DCF /* InsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightCard.swift; sourceTree = "<group>"; };
+		E1DF73B902DDAAC553E618C5 /* GhostTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostTextField.swift; sourceTree = "<group>"; };
+		79713728EDEFE7DD3E77E93B /* ProcessChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessChip.swift; sourceTree = "<group>"; };
+		6A9745FF4B50AD3DFDAD7A5C /* LogListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogListView.swift; sourceTree = "<group>"; };
+		DAE218B517E62F5E5FF54393 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		7E115986A3059610C395E466 /* CreativeForgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreativeForgeView.swift; sourceTree = "<group>"; };
+		85CB9A31F8F793D42C925A63 /* SecurityVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityVaultView.swift; sourceTree = "<group>"; };
+		9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeploymentHubView.swift; sourceTree = "<group>"; };
+		3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		F96FD3F547723E8AD6884A0C /* NeuralEtherOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeuralEtherOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A23BB9B9C4FB00984344C59 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D5DE88EA417BDF66BA3E1894 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		6BC9136C2E1B992EF374A2EA /* Frameworks */ = {
+		6DB04654966809A36F783873 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -65,25 +65,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		8D3FC6DB5D0827F168A73277 = {
+		B4E6DF54C7469AF0FB91F352 = {
 			isa = PBXGroup;
 			children = (
-				1F894C0CB8C1D00D979C20E2 /* NeuralEtherOS */,
-				1BADDC1D73C1A20F347483E1 /* Products */,
+				E771643513743D1C69DDCEB6 /* NeuralEtherOS */,
+				BF7A2D27A78D590BDEF15AF2 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-
-		1BADDC1D73C1A20F347483E1 /* Products */ = {
+		BF7A2D27A78D590BDEF15AF2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				71CCD365E3A654DA84DBA191 /* NeuralEtherOS.app */,
+				F96FD3F547723E8AD6884A0C /* NeuralEtherOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-
-		1F894C0CB8C1D00D979C20E2 /* NeuralEtherOS */ = {
+		E771643513743D1C69DDCEB6 /* NeuralEtherOS */ = {
 			isa = PBXGroup;
 			children = (
 				FE910D29D648D8F2EA669AEF /* App */,
@@ -92,68 +90,62 @@
 				75C76AD4A8285D8ACA888B61 /* DesignSystem */,
 				3136E6F1DF677A1E5E9176FE /* Extensions */,
 				F96A124F74B336036B524A40 /* Modules */,
-				BB0000000000000000000002 /* Assets.xcassets */,
-				AA0000000000000000000001 /* Info.plist */,
+				D5DE88EA417BDF66BA3E1894 /* Assets.xcassets */,
+				9A23BB9B9C4FB00984344C59 /* Info.plist */,
 			);
 			path = NeuralEtherOS;
 			sourceTree = "<group>";
 		};
-
 		FE910D29D648D8F2EA669AEF /* App */ = {
 			isa = PBXGroup;
 			children = (
-				04587231B06430991E71FB5C /* NeuralEtherApp.swift */,
+				20D65C79A9EAF8FA5360F1A6 /* NeuralEtherApp.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
 		};
-
 		4724C3FAA6DC593B05F661BF /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				CBB9EDE3A29B7DBB79371FA2 /* CircularProgressView.swift */,
-				55BFA1D524F852D445F48519 /* StatBox.swift */,
-				C67CFB674DB27CF94402788E /* InsightCard.swift */,
-				9DB34029D33104BEB495B818 /* GhostTextField.swift */,
-				F49E302F9B15E1A55F7F3DAE /* ProcessChip.swift */,
-				1CC7FB03B54D51B0C1B57858 /* LogListView.swift */,
+				082E26CDA1C4B78EC7F7B9B6 /* CircularProgressView.swift */,
+				CAA299917DB2A09CFE695797 /* StatBox.swift */,
+				92C5CDA62AA6339B80D03DCF /* InsightCard.swift */,
+				E1DF73B902DDAAC553E618C5 /* GhostTextField.swift */,
+				79713728EDEFE7DD3E77E93B /* ProcessChip.swift */,
+				6A9745FF4B50AD3DFDAD7A5C /* LogListView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
 		};
-
 		B7AB829E147C5C30FE98B1CB /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				5A1DC0A6782817C11BBF747F /* NeuralOrchestrator.swift */,
-				1702579FDCE2DE985CB361A6 /* MainContainerView.swift */,
+				DD4ECE77081C75D20E5A5AB0 /* NeuralOrchestrator.swift */,
+				B86D2F3FA14F0FAA19A6CCDB /* MainContainerView.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
 		};
-
 		75C76AD4A8285D8ACA888B61 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
-				E3946F7684F7AEF14498243C /* DesignTokens.swift */,
-				278BCF78D886A3E1D738AA3D /* Typography.swift */,
-				684AF2B643B8C187B9000D3F /* GlassmorphismModifier.swift */,
-				DCDE4335A8DC79C36DD4CDA1 /* NeuralButtonStyle.swift */,
-				8AF21F66D870E6F509742273 /* NeuralTrace.swift */,
+				E61DFAC20BE6A0AD0385F507 /* DesignTokens.swift */,
+				7B4D82C7A8C41D884EFD0EAC /* Typography.swift */,
+				459BDBF2A8B0239C2BD4A5E4 /* GlassmorphismModifier.swift */,
+				D0754B4E151065E5DC7FDFC5 /* NeuralButtonStyle.swift */,
+				0F9CF837F2B5E729A40C3A69 /* NeuralTrace.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
 		};
-
 		3136E6F1DF677A1E5E9176FE /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				F68AB6A5E8F0A7BE65DAC0D6 /* Color+Hex.swift */,
+				3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
 		};
-
 		F96A124F74B336036B524A40 /* Modules */ = {
 			isa = PBXGroup;
 			children = (
@@ -165,53 +157,48 @@
 			path = Modules;
 			sourceTree = "<group>";
 		};
-
 		4E445A9519AE0677379B7745 /* CreativeForge */ = {
 			isa = PBXGroup;
 			children = (
-				641C6CA9F68C166D8C3E4571 /* CreativeForgeView.swift */,
+				7E115986A3059610C395E466 /* CreativeForgeView.swift */,
 			);
 			path = CreativeForge;
 			sourceTree = "<group>";
 		};
-
 		74324A6D0C2CAF93C3A55DAA /* Dashboard */ = {
 			isa = PBXGroup;
 			children = (
-				B5E790AD1238D37E508A6916 /* DashboardView.swift */,
+				DAE218B517E62F5E5FF54393 /* DashboardView.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
 		};
-
 		9BF3FF50676933A263DE0CE6 /* DeploymentHub */ = {
 			isa = PBXGroup;
 			children = (
-				C5DC669DE1B55A42C2E68AEE /* DeploymentHubView.swift */,
+				9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */,
 			);
 			path = DeploymentHub;
 			sourceTree = "<group>";
 		};
-
 		B34BFE5AF63D6CA2A2A4470C /* SecurityVault */ = {
 			isa = PBXGroup;
 			children = (
-				01759635C365496610097A59 /* SecurityVaultView.swift */,
+				85CB9A31F8F793D42C925A63 /* SecurityVaultView.swift */,
 			);
 			path = SecurityVault;
 			sourceTree = "<group>";
 		};
-
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		42AEFBAE01D2DFD981F7DA7D /* NeuralEtherOS */ = {
+		6772EC0E5D0CA05E04DDDB49 /* NeuralEtherOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = EAF116FE40D68E4ABB26094B /* Build configuration list for PBXNativeTarget "NeuralEtherOS" */;
+			buildConfigurationList = 8275601EC0673110326614E6 /* Build configuration list for PBXNativeTarget "NeuralEtherOS" */;
 			buildPhases = (
-				F680599402C0D80E245DE801 /* Sources */,
-				6BC9136C2E1B992EF374A2EA /* Frameworks */,
-				781C774F390DF12CD292A30B /* Resources */,
+				7B1AB24959979FF757979CE2 /* Sources */,
+				6DB04654966809A36F783873 /* Frameworks */,
+				BC01316BBCA63BD9F9542A7E /* Resources */,
 			);
 			buildRules = (
 			);
@@ -219,15 +206,15 @@
 			);
 			name = NeuralEtherOS;
 			productName = NeuralEtherOS;
-			productReference = 71CCD365E3A654DA84DBA191 /* NeuralEtherOS.app */;
+			productReference = F96FD3F547723E8AD6884A0C /* NeuralEtherOS.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+		5299AC4324DC18342A8CCD96 /* Project object */ = {
 			isa = PBXProject;
-			buildConfigurationList = ADD3EDE971004D3249A2A24C /* Build configuration list for PBXProject "NeuralEtherOS" */;
+			buildConfigurationList = 547095AE1FCB6888116CDBC4 /* Build configuration list for PBXProject "NeuralEtherOS" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -235,58 +222,58 @@
 				en,
 				Base,
 			);
-			mainGroup = 8D3FC6DB5D0827F168A73277;
-			productRefGroup = 1BADDC1D73C1A20F347483E1 /* Products */;
+			mainGroup = B4E6DF54C7469AF0FB91F352;
+			productRefGroup = BF7A2D27A78D590BDEF15AF2 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				42AEFBAE01D2DFD981F7DA7D /* NeuralEtherOS */,
+				6772EC0E5D0CA05E04DDDB49 /* NeuralEtherOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		781C774F390DF12CD292A30B /* Resources */ = {
+		BC01316BBCA63BD9F9542A7E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BB0000000000000000000001 /* Assets.xcassets in Resources */,
+				1253613CF10DAF2FA7DE13DE /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		F680599402C0D80E245DE801 /* Sources */ = {
+		7B1AB24959979FF757979CE2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				25ABC863580C7CDA3D01F6BC /* NeuralEtherApp.swift in Sources */,
-				ACD839FBDB3D1EFBFF8AF8A9 /* NeuralOrchestrator.swift in Sources */,
-				0D31921B8C9156CAC5DE45D4 /* MainContainerView.swift in Sources */,
-				AF2E4B77CEA6E4BB535A7360 /* DesignTokens.swift in Sources */,
-				493CBE053C43F1C77C828F8C /* Typography.swift in Sources */,
-				224E04E87ACBF7274CB5AD97 /* GlassmorphismModifier.swift in Sources */,
-				D365287361585486380CB8F5 /* NeuralButtonStyle.swift in Sources */,
-				DFD0DE2E93B2E61757DD921D /* NeuralTrace.swift in Sources */,
-				662958B69D09B1AEE2330AB6 /* CircularProgressView.swift in Sources */,
-				A26FBF5FEF2229465E6E2435 /* StatBox.swift in Sources */,
-				447B9233791A90C0B544BBD8 /* InsightCard.swift in Sources */,
-				FA2BC43DEE8D6F9D50298EA2 /* GhostTextField.swift in Sources */,
-				AB8567D0AAD28F918CEBB5F2 /* ProcessChip.swift in Sources */,
-				9B396BE9BA9AA3C02A8F4D41 /* LogListView.swift in Sources */,
-				0C5F35D18B097AFA94626E33 /* DashboardView.swift in Sources */,
-				9A283E6B2050BB88868D60D1 /* CreativeForgeView.swift in Sources */,
-				0AC26410A55C0AE22931412D /* SecurityVaultView.swift in Sources */,
-				E6B738BE267D7D8899E1FAEA /* DeploymentHubView.swift in Sources */,
-				94B8FF22E817BFF42333E559 /* Color+Hex.swift in Sources */,
+				A57390FCF297F44A8BE26150 /* NeuralEtherApp.swift in Sources */,
+				DAE674CC9023273866B5B783 /* NeuralOrchestrator.swift in Sources */,
+				BD41A15FD02F3070A7542C32 /* MainContainerView.swift in Sources */,
+				88111698888F9DABD9AB3728 /* DesignTokens.swift in Sources */,
+				F9CF613BCD15C4E0D9764C57 /* Typography.swift in Sources */,
+				F82168BB2F792A09AA9EB130 /* GlassmorphismModifier.swift in Sources */,
+				813754ED71A690299C1988F1 /* NeuralButtonStyle.swift in Sources */,
+				524EA850591372F5E12A8971 /* NeuralTrace.swift in Sources */,
+				99A21712AABB115C56BD700B /* CircularProgressView.swift in Sources */,
+				433007093B96A2AEC35A1F68 /* StatBox.swift in Sources */,
+				F479B4E3DF44B8032D6AD2D6 /* InsightCard.swift in Sources */,
+				A0E50CF6268AF22AA4682A68 /* GhostTextField.swift in Sources */,
+				999F6C298FE90C9AD8535A17 /* ProcessChip.swift in Sources */,
+				30C55041EEF24C104A99BFCD /* LogListView.swift in Sources */,
+				4D1A0B5E095A93A49D165D07 /* DashboardView.swift in Sources */,
+				AB1D13059555A2772F0400B6 /* CreativeForgeView.swift in Sources */,
+				65EF848F6C03FD5EBFAA0FF6 /* SecurityVaultView.swift in Sources */,
+				8FB4156762CD894FB5894A69 /* DeploymentHubView.swift in Sources */,
+				95197EF0C00D47E79F9B04B3 /* Color+Hex.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		59233E4D684FB5A1A72525B8 /* Debug */ = {
+		9B78CAAD775A7B1ADCDDB4CB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -320,8 +307,7 @@
 			};
 			name = Debug;
 		};
-
-		8D5ED1041709BB7FC1DE2B10 /* Release */ = {
+		67A65AB35555E026329D87C3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -348,8 +334,7 @@
 			};
 			name = Release;
 		};
-
-		D8579749783A718541606A67 /* Debug */ = {
+		5C1FCF821166A8E947DC58DE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -357,7 +342,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = NeuralEtherOS/Info.plist;
+				INFOPLIST_FILE = "NeuralEtherOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -371,8 +356,7 @@
 			};
 			name = Debug;
 		};
-
-		553194FECB7E1C4EBBAFB6CE /* Release */ = {
+		D8A34C63742B602B66E1CD36 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -380,7 +364,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = NeuralEtherOS/Info.plist;
+				INFOPLIST_FILE = "NeuralEtherOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -397,25 +381,26 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		ADD3EDE971004D3249A2A24C /* Build configuration list for PBXProject "NeuralEtherOS" */ = {
+		547095AE1FCB6888116CDBC4 /* Build configuration list for PBXProject "NeuralEtherOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				59233E4D684FB5A1A72525B8 /* Debug */,
-				8D5ED1041709BB7FC1DE2B10 /* Release */,
+				9B78CAAD775A7B1ADCDDB4CB /* Debug */,
+				67A65AB35555E026329D87C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		EAF116FE40D68E4ABB26094B /* Build configuration list for PBXNativeTarget "NeuralEtherOS" */ = {
+		8275601EC0673110326614E6 /* Build configuration list for PBXNativeTarget "NeuralEtherOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				D8579749783A718541606A67 /* Debug */,
-				553194FECB7E1C4EBBAFB6CE /* Release */,
+				5C1FCF821166A8E947DC58DE /* Debug */,
+				D8A34C63742B602B66E1CD36 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
 	};
-	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+	rootObject = 5299AC4324DC18342A8CCD96 /* Project object */;
 }
