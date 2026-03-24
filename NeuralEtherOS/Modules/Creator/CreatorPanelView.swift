@@ -644,11 +644,11 @@ struct CreatorPanelView: View {
         case "scan cctv":
             addOutput("[CCTV SCANNER] Scanning 1km radius...", hackerCyan)
             addOutput("  Frequency: All bands (2.4/5/6 GHz)", hackerDimGreen)
-            for cam in cameras.prefix(5) {
+            for cam in cctvCameras.prefix(5) {
                 addOutput("  [FOUND] \(cam.name) @ \(cam.ip):\(cam.port) (\(cam.distance)m) \u{2014} \(cam.vulnerability)", cam.isOnline ? hackerGreen : hackerRed)
             }
-            addOutput("  ...and \(max(0, cameras.count - 5)) more cameras detected", hackerDimGreen)
-            addOutput("Scan complete: \(cameras.count) cameras in range", hackerCyan)
+            addOutput("  ...and \(max(0, cctvCameras.count - 5)) more cameras detected", hackerDimGreen)
+            addOutput("Scan complete: \(cctvCameras.count) cameras in range", hackerCyan)
         case "devices":
             addOutput("[DEVICE MANAGER] Connected devices:", hackerCyan)
             for dev in deviceList {
