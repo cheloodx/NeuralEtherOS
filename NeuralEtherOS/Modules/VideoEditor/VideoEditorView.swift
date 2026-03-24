@@ -1072,12 +1072,16 @@ struct VideoEditorView: View {
 
 // MARK: - Video Clip Model
 
-struct VideoClip: Identifiable {
+struct VideoClip: Identifiable, Equatable {
     let id = UUID()
     let name: String
     let duration: Double
     let color: Color
     var type: String = "video"
+
+    static func == (lhs: VideoClip, rhs: VideoClip) -> Bool {
+        lhs.id == rhs.id
+    }
 
     static let sampleClips: [VideoClip] = [
         VideoClip(name: "INTRO", duration: 5.0, color: .neuralPrimary, type: "title"),
