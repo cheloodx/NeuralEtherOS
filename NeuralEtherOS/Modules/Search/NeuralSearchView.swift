@@ -11,8 +11,6 @@ struct NeuralSearchView: View {
     @State private var isTyping: Bool = false
     @State private var searchCount: Int = 0
     @State private var showSuggestions: Bool = true
-    @State private var typingDots: Int = 0
-    @State private var typingTimer: Timer? = nil
     @FocusState private var isInputFocused: Bool
 
     private let connectedCountries = 175
@@ -363,18 +361,22 @@ struct NeuralSearchView: View {
             if messages.count <= 1 { quickChips }
 
             HStack(spacing: Spacing.md) {
-                TextField("", text: $messageText, prompt: Text("Ask me anything in any language...").foregroundColor(.onSurfaceVariant.opacity(0.4)), axis: .vertical)
+                TextField("", text: $messageText, prompt: Text("Ask me anything in any language...").foregroundColor(.onSurfaceVariant.opacity(0.4)))
                     .font(NeuralFont.bodyMedium())
                     .foregroundColor(.onSurface)
                     .textFieldStyle(PlainTextFieldStyle())
                     .focused($isInputFocused)
-                    .lineLimit(1...5)
                     .onSubmit { sendMessage() }
 
                 Button { sendMessage() } label: {
-                    Image(systemName: canSend ? "arrow.up.circle.fill" : "arrow.up.circle")
-                        .font(.system(size: 28))
-                        .foregroundColor(canSend ? .neuralPrimary : .onSurfaceVariant.opacity(0.2))
+                    ZStack {
+                        Circle()
+                            .fill(canSend ? Color.neuralPrimary : Color.neuralPrimary.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(canSend ? .surface : .onSurfaceVariant.opacity(0.3))
+                    }
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend)
@@ -409,6 +411,8 @@ struct NeuralSearchView: View {
                 chip("Global network", icon: "globe")
                 chip("Starea sistemului", icon: "flag")
                 chip("AI capabilities", icon: "sparkles")
+                chip("What time is it?", icon: "clock")
+                chip("Trending now", icon: "flame")
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.bottom, Spacing.sm)
@@ -450,12 +454,13 @@ struct NeuralSearchView: View {
         messageText = ""
         searchCount += 1
         showSuggestions = true
+        isInputFocused = false
 
         withAnimation(.easeIn(duration: 0.2)) {
             isTyping = true
         }
 
-        let delay = Double.random(in: 1.0...2.5)
+        let delay = Double.random(in: 0.8...2.0)
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             let (response, sources, regions) = self.agentProcess(text)
             let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
@@ -523,37 +528,42 @@ struct NeuralSearchView: View {
         let lang = detectLanguage(q)
 
         // Greetings
-        if matchesAny(q, ["hello", "hi", "hey", "salut", "buna", "hola", "bonjour", "hallo", "ciao", "ola"]) {
+        if matchesAny(q, ["hello", "hi ", "hey", "salut", "buna", "hola", "bonjour", "hallo", "ciao", "ola", "yo", "sup", "howdy"]) {
             return (greetingResponse(lang), 1, ["AI", "GLOBAL"])
         }
 
         // Thanks
-        if matchesAny(q, ["thank", "mersi", "multumesc", "gracias", "merci", "danke", "grazie", "obrigado"]) {
+        if matchesAny(q, ["thank", "mersi", "multumesc", "gracias", "merci", "danke", "grazie", "obrigado", "thx", "ty"]) {
             return (thanksResponse(lang), 1, ["AI"])
         }
 
+        // About / Identity
+        if matchesAny(q, ["who are you", "what are you", "cine esti", "ce esti", "tu cine", "name", "introduce", "tell me about you", "presenta"]) {
+            return (aboutResponse(lang), 1, ["AI", "CORE"])
+        }
+
         // System status
-        if matchesAny(q, ["status", "system", "stare", "starea", "sistem", "estado", "systeme", "diagnostics", "diagnostic", "how are", "cum e", "cum esti", "cum merge"]) {
+        if matchesAny(q, ["status", "system", "stare", "starea", "sistem", "estado", "systeme", "diagnostics", "diagnostic", "how are", "cum e", "cum esti", "cum merge", "health", "performan"]) {
             return (statusResponse(lang), 47, ["GLOBAL", "EU", "US", "ASIA"])
         }
 
         // Error scanning
-        if matchesAny(q, ["error", "log", "warn", "scan", "problem", "issue", "eroare", "erori", "bug", "crash", "fail", "gresea"]) {
+        if matchesAny(q, ["error", "log", "warn", "scan", "problem", "issue", "eroare", "erori", "bug", "crash", "fail", "gresea", "nu merge", "broken", "fix"]) {
             return (errorScanResponse(lang), 175, ["GLOBAL", "SCAN"])
         }
 
         // Security
-        if matchesAny(q, ["security", "panic", "vault", "safe", "protect", "securitate", "siguranta", "firewall", "encrypt", "hack", "seguridad", "securite", "sicherheit"]) {
+        if matchesAny(q, ["security", "panic", "vault", "safe", "protect", "securitate", "siguranta", "firewall", "encrypt", "hack", "seguridad", "securite", "sicherheit", "password", "parola", "attack", "threat"]) {
             return (securityResponse(lang), 94, ["SECURITY", "GLOBAL", "ENCRYPTED"])
         }
 
         // Network / Countries
-        if matchesAny(q, ["network", "latency", "connection", "global", "country", "countries", "tari", "retea", "ping", "node", "server", "bandwidth", "red", "reseau", "netzwerk"]) {
+        if matchesAny(q, ["network", "latency", "connection", "global", "country", "countries", "tari", "retea", "ping", "node", "server", "bandwidth", "red", "reseau", "netzwerk", "internet", "speed", "viteza"]) {
             return (networkResponse(lang), 175, ["EU", "US", "APAC", "AFRICA", "ME"])
         }
 
         // Deployment
-        if matchesAny(q, ["deploy", "build", "app store", "release", "ipa", "publish", "lansare", "publicare"]) {
+        if matchesAny(q, ["deploy", "build", "app store", "release", "ipa", "publish", "lansare", "publicare", "upload", "submit"]) {
             return (deployResponse(lang), 12, ["DEPLOY", "CDN", "GLOBAL"])
         }
 
@@ -568,7 +578,7 @@ struct NeuralSearchView: View {
         }
 
         // Creator panel
-        if matchesAny(q, ["creator", "admin", "+18", "18", "webcam", "wifi", "camera", "acces", "control", "permis", "panel", "functii", "administra"]) {
+        if matchesAny(q, ["creator", "admin", "+18", "18+", "webcam", "wifi", "camera", "acces", "control", "permis", "panel", "functii", "administra", "cctv", "scanner", "panou"]) {
             return (creatorResponse(lang), 3, ["CREATOR", "100%"])
         }
 
@@ -578,33 +588,63 @@ struct NeuralSearchView: View {
         }
 
         // Trending
-        if matchesAny(q, ["trend", "new", "popular", "hot", "nou", "popular", "tendencia", "tendance"]) {
+        if matchesAny(q, ["trend", "popular", "hot", "nou", "tendencia", "tendance", "viral", "top", "best", "latest", "newest"]) {
             return (trendingResponse(lang), 1240, ["TRENDING", "GLOBAL", "AI"])
         }
 
         // Help / capabilities
-        if matchesAny(q, ["help", "what can", "feature", "capabilit", "ajutor", "ce poti", "cum functioneaz", "option", "ayuda", "aide", "hilfe"]) {
+        if matchesAny(q, ["help", "what can", "feature", "capabilit", "ajutor", "ce poti", "cum functioneaz", "option", "ayuda", "aide", "hilfe", "what do you do", "how do", "cum fac"]) {
             return (helpResponse(lang), 12, ["AI", "GLOBAL", "LEARNING"])
         }
 
         // Forge / Tasks
-        if matchesAny(q, ["forge", "creative", "task", "synthesis", "process", "sarcini"]) {
+        if matchesAny(q, ["forge", "creative", "task", "synthesis", "process", "sarcini", "generate", "create", "make"]) {
             return (forgeResponse(lang), 8, ["FORGE", "DISTRIBUTED"])
         }
 
         // Weather / General knowledge simulation
-        if matchesAny(q, ["weather", "vreme", "meteo", "temperatura", "rain", "sun", "clima", "tiempo", "wetter"]) {
+        if matchesAny(q, ["weather", "vreme", "meteo", "temperatura", "rain", "sun", "clima", "tiempo", "wetter", "cold", "warm", "snow"]) {
             return (weatherResponse(lang, query), Int.random(in: 30...80), ["WEATHER", "GLOBAL"])
         }
 
         // Math / calculations
-        if matchesAny(q, ["calcul", "math", "plus", "minus", "inmulti", "imparti", "=", "cat face", "cat e", "how much"]) {
+        if matchesAny(q, ["calcul", "math", "plus", "minus", "inmulti", "imparti", "=", "cat face", "cat e", "how much", "solve", "equation"]) {
             return (mathResponse(lang, query), 1, ["COMPUTE"])
         }
 
         // Time
-        if matchesAny(q, ["time", "ora", "ceas", "date", "data", "heure", "hora", "uhr", "zi", "day"]) {
+        if matchesAny(q, ["time", "ora", "ceas", "date", "data", "heure", "hora", "uhr", "day", "today", "azi", "acum"]) {
             return (timeResponse(lang), 1, ["TIME", "GLOBAL"])
+        }
+
+        // Code / Programming
+        if matchesAny(q, ["code", "program", "swift", "python", "javascript", "java", "html", "css", "api", "function", "debug", "coding", "develop"]) {
+            return (codeResponse(lang, query), Int.random(in: 40...150), ["CODE", "AI", "DEV"])
+        }
+
+        // Music
+        if matchesAny(q, ["music", "song", "playlist", "spotify", "muzica", "cantec", "artist", "album", "listen", "youtube"]) {
+            return (musicResponse(lang), Int.random(in: 20...60), ["MUSIC", "ENTERTAINMENT"])
+        }
+
+        // News
+        if matchesAny(q, ["news", "stiri", "world", "lume", "event", "war", "politics", "economy", "econom", "politic"]) {
+            return (newsResponse(lang), Int.random(in: 80...200), ["NEWS", "GLOBAL", "LIVE"])
+        }
+
+        // AI / Tech
+        if matchesAny(q, ["artificial", "machine learning", "neural", "gpt", "chatgpt", "openai", "google", "apple", "microsoft", "robot", "automat"]) {
+            return (aiTechResponse(lang, query), Int.random(in: 50...175), ["AI", "TECH", "RESEARCH"])
+        }
+
+        // Fun / Jokes
+        if matchesAny(q, ["game", "play", "fun", "joke", "joc", "joac", "funny", "laugh", "entertainment", "gluma"]) {
+            return (funResponse(lang), Int.random(in: 10...30), ["FUN", "AI"])
+        }
+
+        // Health / Fitness
+        if matchesAny(q, ["health", "sanatate", "doctor", "medic", "exercise", "sport", "fitness", "diet", "calorie", "sleep", "gym"]) {
+            return (healthResponse(lang), Int.random(in: 30...90), ["HEALTH", "GLOBAL"])
         }
 
         // Default - intelligent response to ANY query
@@ -1032,10 +1072,23 @@ struct NeuralSearchView: View {
     }
 
     private func mathResponse(_ lang: String, _ query: String) -> String {
-        if lang == "ro" {
-            return "Am primit cererea ta matematic\u{0103}: \"\(query)\"\n\n\u{00CE}n versiunea viitoare, voi putea calcula direct. Deocamdat\u{0103}, \u{00EE}\u{021B}i pot oferi informa\u{021B}ii despre orice alt subiect!\n\nSugestie: \u{00CE}ntreab\u{0103}-m\u{0103} despre sistem, securitate, sau orice altceva."
+        let q = query.lowercased()
+        var result = ""
+        let digits = q.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }.compactMap { Int($0) }
+        if digits.count >= 2 {
+            let a = digits[0]; let b = digits[1]
+            if q.contains("+") || q.contains("plus") { result = "\(a) + \(b) = \(a + b)" }
+            else if q.contains("-") || q.contains("minus") { result = "\(a) - \(b) = \(a - b)" }
+            else if q.contains("*") || q.contains("inmulti") || q.contains("times") { result = "\(a) x \(b) = \(a * b)" }
+            else if (q.contains("/") || q.contains("imparti") || q.contains("divid")) && b != 0 { result = "\(a) / \(b) = \(String(format: \"%.2f\", Double(a) / Double(b)))" }
+            else { result = "\(a) + \(b) = \(a + b)" }
         }
-        return "I received your math query: \"\(query)\"\n\nIn the next version, I'll compute directly. For now, I can help with system info, security, trends, and more!\n\nSuggestion: Ask about system status, security, or anything else."
+        if lang == "ro" {
+            if !result.isEmpty { return "Calculat:\n\n\(result)\n\nPot rezolva \u{0219}i alte calcule!" }
+            return "Scrie opera\u{021B}ia (ex: \"25 + 17\") \u{0219}i o calculez!"
+        }
+        if !result.isEmpty { return "Computed:\n\n\(result)\n\nI can solve more!" }
+        return "Type the operation (e.g., \"25 + 17\") and I'll compute it!"
     }
 
     private func timeResponse(_ lang: String) -> String {
@@ -1049,6 +1102,81 @@ struct NeuralSearchView: View {
             return "Ora curent\u{0103}: \(timeStr) UTC\nData: \(dateStr)\n\nServere sincronizate pe \(connectedCountries) \u{021B}\u{0103}ri cu precizie atomic\u{0103}."
         }
         return "Current time: \(timeStr) UTC\nDate: \(dateStr)\n\nServers synchronized across \(connectedCountries) countries with atomic precision."
+    }
+
+    // MARK: - About Response
+
+    private func aboutResponse(_ lang: String) -> String {
+        if lang == "ro" {
+            return "Sunt Neural Ether AI \u{2014} un motor de c\u{0103}utare avansat \u{0219}i agent AI autonom.\n\n\u{25CF} Conectat la \(connectedCountries) \u{021B}\u{0103}ri \u{00EE}n timp real\n\u{25CF} \(dataCenters) centre de date distribuite global\n\u{25CF} \(indexedSources / 1_000_000)M+ surse indexate\n\u{25CF} Vorbesc toate limbile\n\u{25CF} Caut, analizez, \u{00EE}nv\u{0103}\u{021B} \u{0219}i sugerez autonom\n\nSunt creat s\u{0103} te ajut cu orice!"
+        }
+        return "I am Neural Ether AI \u{2014} an advanced search engine and autonomous AI agent.\n\n\u{25CF} Connected to \(connectedCountries) countries in real-time\n\u{25CF} \(dataCenters) globally distributed data centers\n\u{25CF} \(indexedSources / 1_000_000)M+ indexed sources\n\u{25CF} I speak all languages\n\u{25CF} I search, analyze, learn and suggest autonomously\n\nI was built to help you with anything!"
+    }
+
+    // MARK: - Code Response
+
+    private func codeResponse(_ lang: String, _ query: String) -> String {
+        if lang == "ro" {
+            return "Programare \u{2014} Analizat:\n\n\u{25CF} Swift / SwiftUI\n\u{25CF} Python \u{2014} ML, Data Science\n\u{25CF} JavaScript / TypeScript\n\u{25CF} Java / Kotlin\n\u{25CF} C++ / Rust\n\nPot analiza cod, sugera optimiz\u{0103}ri, explica concepte.\n\nDescrie problema \u{0219}i limbajul!"
+        }
+        return "Programming \u{2014} Analyzed:\n\n\u{25CF} Swift / SwiftUI\n\u{25CF} Python \u{2014} ML, Data Science\n\u{25CF} JavaScript / TypeScript\n\u{25CF} Java / Kotlin\n\u{25CF} C++ / Rust\n\nI can analyze code, suggest optimizations, explain concepts.\n\nDescribe your problem and language!"
+    }
+
+    // MARK: - Music Response
+
+    private func musicResponse(_ lang: String) -> String {
+        let artists = ["The Weeknd", "Bad Bunny", "Taylor Swift", "Drake", "BTS", "Dua Lipa"]
+        let picked = artists.shuffled().prefix(3)
+        if lang == "ro" {
+            return "Muzic\u{0103} Trending (\(connectedCountries) \u{021B}\u{0103}ri):\n\nTop arti\u{0219}ti: \(picked.joined(separator: ", "))\n\nGenuri populare 2026:\n\u{25CF} AI-Generated Music +250%\n\u{25CF} Neo-Soul / Ambient +180%\n\u{25CF} Latin Pop +120%\n\nSpune-mi ce gen preferi!"
+        }
+        return "Music Trending (\(connectedCountries) countries):\n\nTop artists: \(picked.joined(separator: ", "))\n\nPopular genres 2026:\n\u{25CF} AI-Generated Music +250%\n\u{25CF} Neo-Soul / Ambient +180%\n\u{25CF} Latin Pop +120%\n\nTell me your preferred genre!"
+    }
+
+    // MARK: - News Response
+
+    private func newsResponse(_ lang: String) -> String {
+        if lang == "ro" {
+            return "\u{0218}tiri Mondiale (\(connectedCountries) \u{021B}\u{0103}ri):\n\n\u{25CF} Tech: Agen\u{021B}i AI autonomi\n\u{25CF} Economie: Cre\u{0219}tere 3.2%\n\u{25CF} \u{0218}tiin\u{021B}\u{0103}: Fuziune nuclear\u{0103}\n\u{25CF} Spa\u{021B}iu: Misiuni Marte\n\u{25CF} S\u{0103}n\u{0103}tate: Vaccinuri mRNA gen 3\n\nDate simulate. Poate fi conectat la API-uri."
+        }
+        return "World News (\(connectedCountries) countries):\n\n\u{25CF} Tech: Autonomous AI agents\n\u{25CF} Economy: 3.2% global growth\n\u{25CF} Science: Nuclear fusion breakthroughs\n\u{25CF} Space: New Mars missions\n\u{25CF} Health: 3rd gen mRNA vaccines\n\nSimulated data. Can connect to real APIs."
+    }
+
+    // MARK: - AI Tech Response
+
+    private func aiTechResponse(_ lang: String, _ query: String) -> String {
+        if lang == "ro" {
+            return "AI \u{2014} Raport 2026:\n\n\u{25CF} Agen\u{021B}i AI: Autonomi, multi-modal\n\u{25CF} LLMs: 10T+ parametri\n\u{25CF} AI Generativ: Art\u{0103}, muzic\u{0103}, cod, video\n\u{25CF} Quantum AI: Procesoare hibride\n\u{25CF} Edge AI: Modele pe mobile\n\nNeural Ether: \(connectedCountries) noduri, \(indexedSources / 1_000_000)M+ surse, \(dataCenters) centre"
+        }
+        return "AI \u{2014} 2026 Report:\n\n\u{25CF} AI Agents: Autonomous, multi-modal\n\u{25CF} LLMs: 10T+ parameters\n\u{25CF} Generative AI: Art, music, code, video\n\u{25CF} Quantum AI: Hybrid processors\n\u{25CF} Edge AI: On-device models\n\nNeural Ether: \(connectedCountries) nodes, \(indexedSources / 1_000_000)M+ sources, \(dataCenters) centers"
+    }
+
+    // MARK: - Fun Response
+
+    private func funResponse(_ lang: String) -> String {
+        let jokes = [
+            "Why do programmers prefer dark mode? Because light attracts bugs!",
+            "There are 10 types of people: those who understand binary and those who don't.",
+            "A SQL query walks into a bar, sees two tables and asks: 'Can I JOIN you?'",
+        ]
+        let jokeRo = [
+            "De ce prefer\u{0103} programatorii dark mode? Pentru c\u{0103} lumina atrage bug-urile!",
+            "Exist\u{0103} 10 tipuri de oameni: cei care \u{00EE}n\u{021B}eleg binar \u{0219}i cei care nu.",
+            "Un query SQL intr\u{0103} \u{00EE}ntr-un bar, vede dou\u{0103} tabele \u{0219}i \u{00EE}ntreab\u{0103}: 'Pot s\u{0103} fac JOIN?'",
+        ]
+        if lang == "ro" {
+            return "\u{1F604} Glum\u{0103} AI:\n\n\(jokeRo.randomElement()!)\n\nMai vrei o glum\u{0103}?"
+        }
+        return "\u{1F604} AI Joke:\n\n\(jokes.randomElement()!)\n\nWant another one?"
+    }
+
+    // MARK: - Health Response
+
+    private func healthResponse(_ lang: String) -> String {
+        if lang == "ro" {
+            return "S\u{0103}n\u{0103}tate & Fitness:\n\n\u{25CF} Exerci\u{021B}ii: Min 30 min/zi\n\u{25CF} Hidratare: 2-3 litri\n\u{25CF} Somn: 7-9 ore\n\u{25CF} Nutri\u{021B}ie echilibrat\u{0103}\n\u{25CF} Mindfulness: 10 min/zi\n\nTrending 2026:\n\u{25CF} Antrenamente AI\n\u{25CF} Wearables avansate\n\u{25CF} Biohacking\n\nNot\u{0103}: Nu e sfat medical."
+        }
+        return "Health & Fitness:\n\n\u{25CF} Exercise: Min 30 min/day\n\u{25CF} Hydration: 2-3 liters\n\u{25CF} Sleep: 7-9 hours\n\u{25CF} Balanced nutrition\n\u{25CF} Mindfulness: 10 min/day\n\nTrending 2026:\n\u{25CF} AI-personalized workouts\n\u{25CF} Advanced wearables\n\u{25CF} Biohacking\n\nNote: Not medical advice."
     }
 
     // MARK: - Default Response (handles ANY query)
