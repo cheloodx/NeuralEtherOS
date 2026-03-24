@@ -341,8 +341,8 @@ struct VideoEditorView: View {
 
     // MARK: Video Effects
 
-    private var videoEffectsPanel: some View {
-        let effects = [
+    private var videoEffects: [(String, String, Color)] {
+        [
             ("SLOW_MO", "tortoise", Color.neuralPrimary),
             ("REVERSE", "arrow.uturn.backward", Color.neuralTertiary),
             ("GLITCH", "waveform.path.ecg", Color.neuralError),
@@ -350,13 +350,15 @@ struct VideoEditorView: View {
             ("FADE_OUT", "circle.righthalf.filled", Color.neuralWarning),
             ("ZOOM_IN", "plus.magnifyingglass", Color.neuralSuccess),
         ]
+    }
 
+    private var videoEffectsPanel: some View {
         LazyVGrid(columns: [
             GridItem(.flexible(), spacing: Spacing.md),
             GridItem(.flexible(), spacing: Spacing.md),
             GridItem(.flexible(), spacing: Spacing.md)
         ], spacing: Spacing.md) {
-            ForEach(Array(effects.enumerated()), id: \.offset) { _, effect in
+            ForEach(Array(videoEffects.enumerated()), id: \.offset) { _, effect in
                 Button {
                     applyVideoEffect(effect.0)
                 } label: {
@@ -446,15 +448,17 @@ struct VideoEditorView: View {
 
     // MARK: Export
 
+    private var exportFormatsList: [(String, String, Color)] {
+        [
+            ("MP4", "4K • H.265", Color.neuralPrimary),
+            ("MOV", "ProRes 422", Color.neuralTertiary),
+            ("WEBM", "VP9 • Web", Color.neuralSuccess),
+        ]
+    }
+
     private var exportPanel: some View {
         VStack(spacing: Spacing.lg) {
-            let formats = [
-                ("MP4", "4K • H.265", Color.neuralPrimary),
-                ("MOV", "ProRes 422", Color.neuralTertiary),
-                ("WEBM", "VP9 • Web", Color.neuralSuccess),
-            ]
-
-            ForEach(Array(formats.enumerated()), id: \.offset) { _, format in
+            ForEach(Array(exportFormatsList.enumerated()), id: \.offset) { _, format in
                 Button {
                     startExport(format: format.0)
                 } label: {

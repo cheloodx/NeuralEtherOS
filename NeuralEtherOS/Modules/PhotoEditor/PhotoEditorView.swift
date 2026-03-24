@@ -326,8 +326,8 @@ struct PhotoEditorView: View {
 
     // MARK: Effects
 
-    private var effectsPanel: some View {
-        let effects = [
+    private var photoEffects: [(String, String, Color)] {
+        [
             ("NEURAL_GLOW", "sparkles", Color.neuralPrimary),
             ("CYBER_GRAIN", "circle.grid.3x3", Color.neuralTertiary),
             ("GLITCH_FX", "waveform.path.ecg", Color.neuralError),
@@ -335,13 +335,15 @@ struct PhotoEditorView: View {
             ("VAPORWAVE", "sunset", Color.neuralWarning),
             ("NEON_EDGE", "pencil.and.outline", Color.electricBlue),
         ]
+    }
 
+    private var effectsPanel: some View {
         LazyVGrid(columns: [
             GridItem(.flexible(), spacing: Spacing.md),
             GridItem(.flexible(), spacing: Spacing.md),
             GridItem(.flexible(), spacing: Spacing.md)
         ], spacing: Spacing.md) {
-            ForEach(Array(effects.enumerated()), id: \.offset) { _, effect in
+            ForEach(Array(photoEffects.enumerated()), id: \.offset) { _, effect in
                 Button {
                     applyEffect(effect.0)
                 } label: {
