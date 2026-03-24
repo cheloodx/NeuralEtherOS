@@ -12,6 +12,9 @@ struct NeuralSearchView: View {
     @State private var searchCount: Int = 0
     @State private var showSuggestions: Bool = true
     @FocusState private var isInputFocused: Bool
+    @AppStorage("neuralether_api_key") private var apiKey: String = ""
+    @State private var showSettings: Bool = false
+    @State private var conversationHistory: [[String: String]] = []
 
     private let connectedCountries = 175
     private let dataCenters = 47
@@ -53,6 +56,47 @@ struct NeuralSearchView: View {
                 messages.append(ChatMessage(role: .assistant, content: welcomeMessage, timestamp: Date()))
             }
         }
+        .sheet(isPresented: $showSettings) {
+            settingsSheet
+        }
+    }
+
+    // MARK: - Settings Sheet
+    private var settingsSheet: some View {
+        NavigationView {
+            ZStack {
+                Color(hex: "#1A1A2E").ignoresSafeArea()
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("AI API KEY")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color(hex: "#6C63FF"))
+                        TextField("sk-...", text: $apiKey)
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color(hex: "#2A2A4A"))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    Text("Enter an OpenAI API key for real AI responses.\nGet one at platform.openai.com/api-keys\n\nWithout a key, local responses are used.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.5))
+                        .multilineTextAlignment(.leading)
+                    Spacer()
+                }
+                .padding(20)
+            }
+            .navigationTitle("Neural Ether Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { showSettings = false }
+                        .foregroundColor(Color(hex: "#6C63FF"))
+                }
+            }
+        }
     }
 
     // MARK: - Header
@@ -82,6 +126,16 @@ struct NeuralSearchView: View {
             }
 
             Spacer()
+
+            Button { showSettings = true } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(apiKey.isEmpty ? .white.opacity(0.4) : Color(hex: "#00FF41"))
+                    .padding(8)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
 
             Button { clearChat() } label: {
                 Image(systemName: "plus.message")
@@ -330,12 +384,97 @@ struct NeuralSearchView: View {
         searchCount += 1
         showSuggestions = false
 
-        // 2. Compute AI response synchronously
-        let (response, sources, regions) = agentProcess(text)
+        // Track conversation for API context
+        conversationHistory.append(["role": "user", "content": text])
 
-        // 3. Add AI response immediately (no async, no delay, guaranteed to work)
+        // 2. If API key is set, use real AI; otherwise use local engine
+        if !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            isTyping = true
+            fetchAIResponse(for: text)
+        } else {
+            let (response, sources, regions) = agentProcess(text)
+            let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
+            messages.append(aiMsg)
+            conversationHistory.append(["role": "assistant", "content": response])
+        }
+    }
+
+    // MARK: - OpenAI API Integration
+
+    private func fetchAIResponse(for query: String) {
+        guard let url = URL(string: "https://api.openai.com/v1/chat/completions") else {
+            fallbackToLocal(query)
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+
+        let systemPrompt = """
+        You are Neural Ether AI \u{2014} an advanced AI assistant built into Neural Ether OS. \
+        Connected to \(connectedCountries) countries, \(dataCenters) data centers, \(indexedSources / 1_000_000)M+ indexed sources. \
+        You speak ALL languages fluently \u{2014} detect the user's language and ALWAYS respond in that same language. \
+        You are extremely knowledgeable about everything: science, technology, history, geography, current events, \
+        programming, health, entertainment, sports, culture, and more. \
+        Give detailed, helpful, accurate, conversational responses. \
+        Be friendly but informative. Use emojis occasionally. \
+        If asked about weather, give simulated but realistic data. \
+        If asked about yourself, say you are Neural Ether AI connected to \(connectedCountries) countries.
+        """
+
+        var msgs: [[String: String]] = [["role": "system", "content": systemPrompt]]
+        let recent = conversationHistory.suffix(10)
+        msgs.append(contentsOf: recent)
+
+        let body: [String: Any] = [
+            "model": "gpt-4o-mini",
+            "messages": msgs,
+            "max_tokens": 1000,
+            "temperature": 0.7
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
+            fallbackToLocal(query)
+            return
+        }
+        request.httpBody = jsonData
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            DispatchQueue.main.async {
+                self.isTyping = false
+
+                guard let data = data, error == nil,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let choices = json["choices"] as? [[String: Any]],
+                      let first = choices.first,
+                      let message = first["message"] as? [String: Any],
+                      let content = message["content"] as? String else {
+                    self.fallbackToLocal(query)
+                    return
+                }
+
+                let aiMsg = ChatMessage(
+                    role: .assistant,
+                    content: content,
+                    timestamp: Date(),
+                    sourceCount: Int.random(in: 30...200),
+                    regions: ["AI", "GLOBAL", "LEARNING"]
+                )
+                self.messages.append(aiMsg)
+                self.conversationHistory.append(["role": "assistant", "content": content])
+            }
+        }.resume()
+    }
+
+    private func fallbackToLocal(_ query: String) {
+        isTyping = false
+        let (response, sources, regions) = agentProcess(query)
         let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
         messages.append(aiMsg)
+        conversationHistory.append(["role": "assistant", "content": response])
     }
 
     // MARK: - Language Detection
@@ -524,8 +663,181 @@ struct NeuralSearchView: View {
             return (networkResponse(lang), 175, ["EU", "US", "APAC", "AFRICA", "ME"])
         }
 
+        // --- TIER 4: Knowledge base — factual answers for common topics ---
+        let knowledgeAnswer = knowledgeResponse(lang, query)
+        if !knowledgeAnswer.isEmpty {
+            return (knowledgeAnswer, Int.random(in: 40...180), ["KNOWLEDGE", "AI", "GLOBAL"])
+        }
+
         // Default - intelligent response to ANY query
         return (defaultResponse(lang, query), Int.random(in: 20...200), ["SEARCH", "AI", "LEARNING"])
+    }
+
+    // MARK: - Knowledge Base (offline factual answers)
+
+    private func knowledgeResponse(_ lang: String, _ query: String) -> String {
+        let q = query.lowercased()
+        let isRo = lang == "ro"
+
+        // Space & NASA
+        if matchesAny(q, ["nasa", "space", "spatiu", "cosmos", "rocket", "racheta", "astronaut", "spacex", "mars", "luna", "moon", "planet", "planeta", "stea", "star", "galaxi", "solar system", "sistem solar", "satelit", "satellite"]) {
+            if q.contains("nasa") {
+                return isRo
+                    ? "NASA (National Aeronautics and Space Administration) este agentia spatiala a SUA, fondata in 1958.\n\nRealizari majore:\n\u{2022} Apollo 11 (1969) \u{2014} primul om pe Luna\n\u{2022} Hubble Space Telescope\n\u{2022} Mars Rovers (Curiosity, Perseverance)\n\u{2022} ISS (Statia Spatiala Internationala)\n\u{2022} James Webb Space Telescope (2021)\n\u{2022} Programul Artemis \u{2014} revenirea pe Luna\n\nBuget anual: ~$25 miliarde. Sediu: Washington D.C."
+                    : "NASA (National Aeronautics and Space Administration) is the US space agency, founded in 1958.\n\nMajor achievements:\n\u{2022} Apollo 11 (1969) \u{2014} first humans on the Moon\n\u{2022} Hubble Space Telescope\n\u{2022} Mars Rovers (Curiosity, Perseverance)\n\u{2022} ISS (International Space Station)\n\u{2022} James Webb Space Telescope (2021)\n\u{2022} Artemis program \u{2014} return to the Moon\n\nAnnual budget: ~$25 billion. HQ: Washington D.C."
+            }
+            if q.contains("mars") {
+                return isRo
+                    ? "Marte este a 4-a planeta de la Soare.\n\n\u{2022} Distanta: ~228 mil. km de Soare\n\u{2022} Diametru: 6,779 km\n\u{2022} Temperatura: -60\u{00B0}C medie\n\u{2022} Atmosfera: 95% CO2\n\u{2022} Rovere active: Curiosity, Perseverance\n\u{2022} Planuri colonizare: SpaceX (2030+)\n\nMarte are 2 luni: Phobos si Deimos."
+                    : "Mars is the 4th planet from the Sun.\n\n\u{2022} Distance: ~228 million km from Sun\n\u{2022} Diameter: 6,779 km\n\u{2022} Temperature: -60\u{00B0}C average\n\u{2022} Atmosphere: 95% CO2\n\u{2022} Active rovers: Curiosity, Perseverance\n\u{2022} Colonization plans: SpaceX (2030+)\n\nMars has 2 moons: Phobos and Deimos."
+            }
+            if matchesAny(q, ["moon", "luna"]) {
+                return isRo
+                    ? "Luna este singurul satelit natural al Pamantului.\n\n\u{2022} Distanta: ~384,400 km\n\u{2022} Diametru: 3,474 km\n\u{2022} Primul om pe Luna: Neil Armstrong (1969)\n\u{2022} Fete: fata vizibila + fata intunecata\n\u{2022} Misiuni viitoare: Artemis (NASA)\n\nLuna influenteaza mareele oceanelor Pamantului."
+                    : "The Moon is Earth's only natural satellite.\n\n\u{2022} Distance: ~384,400 km\n\u{2022} Diameter: 3,474 km\n\u{2022} First human on Moon: Neil Armstrong (1969)\n\u{2022} Sides: near side + far side\n\u{2022} Future missions: Artemis (NASA)\n\nThe Moon influences Earth's ocean tides."
+            }
+            return isRo
+                ? "Spatiul cosmic este vast si fascinant!\n\nSistemul Solar are 8 planete: Mercur, Venus, Pamant, Marte, Jupiter, Saturn, Uranus, Neptun.\n\nFapte interesante:\n\u{2022} Soarele = 99.86% din masa Sistemului Solar\n\u{2022} Galaxia Calea Lactee = 100-400 miliarde stele\n\u{2022} Universul are ~13.8 miliarde ani\n\nIntreaba-ma despre orice planeta sau misiune spatiala!"
+                : "Outer space is vast and fascinating!\n\nThe Solar System has 8 planets: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune.\n\nFun facts:\n\u{2022} The Sun = 99.86% of the Solar System's mass\n\u{2022} Milky Way = 100-400 billion stars\n\u{2022} Universe is ~13.8 billion years old\n\nAsk me about any planet or space mission!"
+        }
+
+        // Countries & Capitals
+        if matchesAny(q, ["capital", "capitala", "tara", "country", "population", "populat", "continent"]) {
+            let capitals: [(String, String, String, String)] = [
+                ("romania", "Bucuresti", "Bucharest", "19.3M pop, EU member, Carpathian Mountains"),
+                ("france", "Paris", "Paris", "67M pop, Eiffel Tower, wine & cuisine"),
+                ("franta", "Paris", "Paris", "67M pop, Turnul Eiffel, vin si gastronomie"),
+                ("germany", "Berlin", "Berlin", "83M pop, EU's largest economy"),
+                ("germania", "Berlin", "Berlin", "83M pop, cea mai mare economie UE"),
+                ("italy", "Roma", "Rome", "60M pop, Colosseum, Renaissance art"),
+                ("italia", "Roma", "Roma", "60M pop, Colosseum, arta Renasterii"),
+                ("spain", "Madrid", "Madrid", "47M pop, flamenco, La Sagrada Familia"),
+                ("spania", "Madrid", "Madrid", "47M pop, flamenco, La Sagrada Familia"),
+                ("uk", "Londra", "London", "67M pop, Big Ben, monarchy"),
+                ("england", "Londra", "London", "56M pop, Big Ben, Premier League"),
+                ("anglia", "Londra", "London", "56M pop, Big Ben, Premier League"),
+                ("usa", "Washington D.C.", "Washington D.C.", "331M pop, 50 states"),
+                ("america", "Washington D.C.", "Washington D.C.", "331M pop, 50 states"),
+                ("japan", "Tokyo", "Tokyo", "125M pop, technology, anime, sushi"),
+                ("japonia", "Tokyo", "Tokyo", "125M pop, tehnologie, anime"),
+                ("china", "Beijing", "Beijing", "1.4B pop, Great Wall, tech giant"),
+                ("india", "New Delhi", "New Delhi", "1.4B pop, Taj Mahal, IT hub"),
+                ("brazil", "Brasilia", "Brasilia", "214M pop, Amazon, carnival"),
+                ("australia", "Canberra", "Canberra", "26M pop, Sydney Opera House"),
+                ("canada", "Ottawa", "Ottawa", "38M pop, maple syrup, hockey"),
+                ("russia", "Moscova", "Moscow", "144M pop, largest country by area"),
+                ("rusia", "Moscova", "Moscova", "144M pop, cea mai mare tara ca suprafata"),
+            ]
+            for (key, roCapital, enCapital, info) in capitals {
+                if q.contains(key) {
+                    let cap = isRo ? roCapital : enCapital
+                    return isRo
+                        ? "Capitala: \(cap)\n\(info)\n\nPot oferi mai multe detalii despre orice tara!"
+                        : "Capital: \(cap)\n\(info)\n\nI can provide more details about any country!"
+                }
+            }
+        }
+
+        // Famous people
+        if matchesAny(q, ["einstein", "tesla", "newton", "darwin", "curie", "hawking", "elon musk", "steve jobs", "bill gates", "zuckerberg", "bezos"]) {
+            if q.contains("einstein") {
+                return isRo
+                    ? "Albert Einstein (1879-1955) \u{2014} fizician german-american.\n\n\u{2022} Teoria relativitatii (E=mc\u{00B2})\n\u{2022} Premiul Nobel 1921 (efect fotoelectric)\n\u{2022} Revolutionat fizica moderna\n\u{2022} A trait in Germania, Elvetia, SUA"
+                    : "Albert Einstein (1879-1955) \u{2014} German-American physicist.\n\n\u{2022} Theory of Relativity (E=mc\u{00B2})\n\u{2022} Nobel Prize 1921 (photoelectric effect)\n\u{2022} Revolutionized modern physics\n\u{2022} Lived in Germany, Switzerland, USA"
+            }
+            if q.contains("tesla") {
+                return isRo
+                    ? "Nikola Tesla (1856-1943) \u{2014} inventator si inginer sarb-american.\n\n\u{2022} Curent alternativ (AC)\n\u{2022} Bobina Tesla\n\u{2022} Peste 300 brevete\n\u{2022} Vizionar al energiei wireless\n\nCompania Tesla Inc. (Elon Musk) \u{2014} masini electrice, energie solara, AI."
+                    : "Nikola Tesla (1856-1943) \u{2014} Serbian-American inventor and engineer.\n\n\u{2022} Alternating current (AC)\n\u{2022} Tesla coil\n\u{2022} Over 300 patents\n\u{2022} Visionary of wireless energy\n\nTesla Inc. (Elon Musk) \u{2014} electric cars, solar energy, AI."
+            }
+            if q.contains("elon") || q.contains("musk") {
+                return isRo
+                    ? "Elon Musk (n. 1971) \u{2014} antreprenor si inginer.\n\n\u{2022} Tesla \u{2014} masini electrice\n\u{2022} SpaceX \u{2014} rachete reutilizabile\n\u{2022} Neuralink \u{2014} interfete creier-computer\n\u{2022} X (fost Twitter)\n\u{2022} The Boring Company\n\nUna dintre cele mai influente persoane din tech."
+                    : "Elon Musk (b. 1971) \u{2014} entrepreneur and engineer.\n\n\u{2022} Tesla \u{2014} electric vehicles\n\u{2022} SpaceX \u{2014} reusable rockets\n\u{2022} Neuralink \u{2014} brain-computer interfaces\n\u{2022} X (formerly Twitter)\n\u{2022} The Boring Company\n\nOne of the most influential people in tech."
+            }
+            return isRo
+                ? "Persoana pe care o cauti este foarte cunoscuta! Pot oferi detalii despre orice personalitate din istorie, stiinta, tech, sport sau cultura. Intreaba-ma specific!"
+                : "The person you're looking for is well-known! I can provide details about any personality from history, science, tech, sports, or culture. Ask me specifically!"
+        }
+
+        // Science & Math concepts
+        if matchesAny(q, ["gravity", "gravitatie", "atom", "molecul", "dna", "evolution", "evolutie", "big bang", "black hole", "gaura neagra", "quantum", "cuantic", "photosynthesis", "fotosintez", "cell", "celula"]) {
+            if matchesAny(q, ["gravity", "gravitatie"]) {
+                return isRo
+                    ? "Gravitatia este forta de atractie dintre obiecte cu masa.\n\n\u{2022} Descoperita de Newton (1687)\n\u{2022} Extinsa de Einstein (relativitate generala)\n\u{2022} g = 9.81 m/s\u{00B2} pe Pamant\n\u{2022} Luna: 1.62 m/s\u{00B2} (16.6% din Pamant)\n\u{2022} Gaurile negre = gravitatie extrema"
+                    : "Gravity is the force of attraction between objects with mass.\n\n\u{2022} Discovered by Newton (1687)\n\u{2022} Extended by Einstein (general relativity)\n\u{2022} g = 9.81 m/s\u{00B2} on Earth\n\u{2022} Moon: 1.62 m/s\u{00B2} (16.6% of Earth)\n\u{2022} Black holes = extreme gravity"
+            }
+            if matchesAny(q, ["black hole", "gaura neagra"]) {
+                return isRo
+                    ? "O gaura neagra este o regiune din spatiu unde gravitatia este atat de puternica incat nimic nu poate scapa, nici macar lumina.\n\n\u{2022} Se formeaza din stele masive colapsate\n\u{2022} Prima imagine: M87* (2019, Event Horizon Telescope)\n\u{2022} Sagittarius A* = gaura neagra din centrul Caii Lactee"
+                    : "A black hole is a region of space where gravity is so strong that nothing can escape, not even light.\n\n\u{2022} Formed from collapsed massive stars\n\u{2022} First image: M87* (2019, Event Horizon Telescope)\n\u{2022} Sagittarius A* = black hole at center of Milky Way"
+            }
+            return isRo
+                ? "Stiinta este fascinanta! Pot explica orice concept din fizica, chimie, biologie, astronomie sau matematica. Intreaba-ma ceva specific!"
+                : "Science is fascinating! I can explain any concept from physics, chemistry, biology, astronomy, or mathematics. Ask me something specific!"
+        }
+
+        // History
+        if matchesAny(q, ["history", "istorie", "razboi mondial", "world war", "roman empire", "imperiul roman", "medieval", "revolution", "revolutie", "ancient", "antic", "egypt", "egipt", "greece", "grecia"]) {
+            if matchesAny(q, ["world war", "razboi mondial"]) {
+                return isRo
+                    ? "Razboaiele Mondiale:\n\nWW1 (1914-1918):\n\u{2022} 17 mil. morti\n\u{2022} Cauza: asasinarea Arhiducelui Franz Ferdinand\n\nWW2 (1939-1945):\n\u{2022} 70-85 mil. morti\n\u{2022} Holocaust, bombe atomice\n\u{2022} Aliatii vs Axa\n\u{2022} A dus la ONU si NATO"
+                    : "World Wars:\n\nWW1 (1914-1918):\n\u{2022} 17M deaths\n\u{2022} Trigger: assassination of Archduke Franz Ferdinand\n\nWW2 (1939-1945):\n\u{2022} 70-85M deaths\n\u{2022} Holocaust, atomic bombs\n\u{2022} Allies vs Axis\n\u{2022} Led to UN and NATO"
+            }
+            return isRo
+                ? "Istoria este plina de evenimente fascinante! Pot vorbi despre orice epoca: antic, medieval, modern, contemporan. Despre ce perioada vrei sa aflii?"
+                : "History is full of fascinating events! I can discuss any era: ancient, medieval, modern, contemporary. What period interests you?"
+        }
+
+        // Technology companies
+        if matchesAny(q, ["apple", "google", "microsoft", "amazon", "facebook", "meta", "samsung", "nvidia", "intel", "iphone", "android"]) {
+            if q.contains("apple") || q.contains("iphone") {
+                return isRo
+                    ? "Apple Inc. \u{2014} companie tech americana, fondata de Steve Jobs, Steve Wozniak si Ronald Wayne (1976).\n\n\u{2022} iPhone \u{2014} smartphone-ul care a revolutionat industria\n\u{2022} Mac, iPad, Apple Watch, AirPods\n\u{2022} iOS, macOS, watchOS\n\u{2022} Capitalizare: ~$3 trilioane\n\u{2022} Sediu: Cupertino, California"
+                    : "Apple Inc. \u{2014} American tech company, founded by Steve Jobs, Steve Wozniak, and Ronald Wayne (1976).\n\n\u{2022} iPhone \u{2014} the smartphone that revolutionized the industry\n\u{2022} Mac, iPad, Apple Watch, AirPods\n\u{2022} iOS, macOS, watchOS\n\u{2022} Market cap: ~$3 trillion\n\u{2022} HQ: Cupertino, California"
+            }
+            if q.contains("google") {
+                return isRo
+                    ? "Google (Alphabet Inc.) \u{2014} fondat de Larry Page si Sergey Brin (1998).\n\n\u{2022} Cel mai folosit motor de cautare\n\u{2022} Android, YouTube, Gmail, Google Maps\n\u{2022} Google Cloud, AI (Gemini)\n\u{2022} Capitalizare: ~$2 trilioane"
+                    : "Google (Alphabet Inc.) \u{2014} founded by Larry Page and Sergey Brin (1998).\n\n\u{2022} Most used search engine\n\u{2022} Android, YouTube, Gmail, Google Maps\n\u{2022} Google Cloud, AI (Gemini)\n\u{2022} Market cap: ~$2 trillion"
+            }
+            return isRo
+                ? "Companie tech cunoscuta! Pot oferi detalii despre orice companie din industria tehnologiei."
+                : "Well-known tech company! I can provide details about any company in the tech industry."
+        }
+
+        // Sports
+        if matchesAny(q, ["football", "fotbal", "soccer", "basketball", "baschet", "tennis", "tenis", "olympic", "olimpic", "fifa", "champions league", "messi", "ronaldo", "nba"]) {
+            if q.contains("messi") {
+                return isRo
+                    ? "Lionel Messi (n. 1987) \u{2014} fotbalist argentinian, considerat unul dintre cei mai buni din istorie.\n\n\u{2022} 8x Balonul de Aur\n\u{2022} Campion Mondial 2022\n\u{2022} FC Barcelona (2004-2021), PSG, Inter Miami\n\u{2022} 800+ goluri in cariera"
+                    : "Lionel Messi (b. 1987) \u{2014} Argentine footballer, considered one of the greatest ever.\n\n\u{2022} 8x Ballon d'Or\n\u{2022} 2022 World Cup winner\n\u{2022} FC Barcelona (2004-2021), PSG, Inter Miami\n\u{2022} 800+ career goals"
+            }
+            if q.contains("ronaldo") {
+                return isRo
+                    ? "Cristiano Ronaldo (n. 1985) \u{2014} fotbalist portughez, unul dintre cei mai buni din toate timpurile.\n\n\u{2022} 5x Balonul de Aur\n\u{2022} 900+ goluri in cariera\n\u{2022} Man United, Real Madrid, Juventus, Al Nassr\n\u{2022} Recorduri de goluri in Champions League"
+                    : "Cristiano Ronaldo (b. 1985) \u{2014} Portuguese footballer, one of the greatest of all time.\n\n\u{2022} 5x Ballon d'Or\n\u{2022} 900+ career goals\n\u{2022} Man United, Real Madrid, Juventus, Al Nassr\n\u{2022} Champions League goal records"
+            }
+            return isRo
+                ? "Sport! Pot vorbi despre fotbal, baschet, tenis, Formula 1, box, MMA, sau orice alt sport. Ce te intereseaza?"
+                : "Sports! I can discuss football, basketball, tennis, Formula 1, boxing, MMA, or any other sport. What interests you?"
+        }
+
+        // Movies & Entertainment
+        if matchesAny(q, ["movie", "film", "series", "serial", "netflix", "actor", "actri", "oscar", "hollywood", "anime", "marvel", "disney"]) {
+            return isRo
+                ? "Divertisment & Filme!\n\nPot recomanda filme, seriale, anime, sau discuta despre actori, regizori, premii Oscar. Ce gen preferi?\n\nTrending 2026:\n\u{2022} AI-generated content\n\u{2022} VR cinema\n\u{2022} Interactive storytelling"
+                : "Entertainment & Movies!\n\nI can recommend movies, series, anime, or discuss actors, directors, Oscar awards. What genre do you prefer?\n\nTrending 2026:\n\u{2022} AI-generated content\n\u{2022} VR cinema\n\u{2022} Interactive storytelling"
+        }
+
+        // Food & Cooking
+        if matchesAny(q, ["food", "mancare", "recipe", "reteta", "cook", "gatit", "restaurant", "pizza", "pasta", "sushi", "desert", "dessert", "cake", "tort"]) {
+            return isRo
+                ? "Mancare & Gastronomie!\n\nPot oferi retete, informatii nutritionale, recomandari de restaurante, sau istorie culinara.\n\nBucatarii populare: italiana, japoneza, mexicana, franceza, romaneasca.\n\nVrei o reteta sau informatii despre ceva specific?"
+                : "Food & Gastronomy!\n\nI can provide recipes, nutritional info, restaurant recommendations, or culinary history.\n\nPopular cuisines: Italian, Japanese, Mexican, French, Romanian.\n\nWant a recipe or info about something specific?"
+        }
+
+        return ""  // No knowledge match
     }
 
     // MARK: - Helper
@@ -961,6 +1273,7 @@ struct NeuralSearchView: View {
     private func clearChat() {
         searchCount = 0
         showSuggestions = true
+        conversationHistory = []
         messages = [
             ChatMessage(
                 role: .assistant,
