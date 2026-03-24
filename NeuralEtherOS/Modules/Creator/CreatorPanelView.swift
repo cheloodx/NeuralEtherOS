@@ -3093,31 +3093,7 @@ struct HackerToggleStyle: ToggleStyle {
     }
 }
 
-// MARK: - Insight Card (reused from old code for compatibility)
-
-struct InsightCard<Content: View>: View {
-    var title: String?
-    @ViewBuilder var content: () -> Content
-
-    init(title: String? = nil, @ViewBuilder content: @escaping () -> Content) {
-        self.title = title
-        self.content = content
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            if let title = title {
-                Text(title)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.onSurfaceVariant.opacity(0.5))
-            }
-            content()
-        }
-        .padding(Spacing.lg)
-        .background(Color.surfaceContainerLow)
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
-    }
-}
+// InsightCard is defined in Components/InsightCard.swift — no duplicate needed here
 
 // MARK: - Neural Toggle Style (kept for backward compatibility)
 
