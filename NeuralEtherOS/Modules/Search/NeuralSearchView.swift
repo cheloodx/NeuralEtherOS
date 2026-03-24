@@ -105,7 +105,7 @@ struct NeuralSearchView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     // Welcome suggestions at top
-                    if messages.count <= 1 {
+                    if messages.count <= 1 && showSuggestions {
                         welcomeSuggestions
                     }
                     ForEach(messages) { msg in
@@ -115,10 +115,13 @@ struct NeuralSearchView: View {
                 }
                 .padding(.vertical, 12)
             }
+            .frame(maxHeight: .infinity)
             .onChange(of: messages.count) { _, _ in
-                withAnimation(.easeOut(duration: 0.2)) {
-                    if let last = messages.last {
-                        proxy.scrollTo(last.id, anchor: .bottom)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        if let last = messages.last {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
                     }
                 }
             }
@@ -326,21 +329,23 @@ struct NeuralSearchView: View {
         }
         messageText = ""
         searchCount += 1
-        showSuggestions = true
+        showSuggestions = false
         isInputFocused = false
+
+        // Pre-compute response BEFORE async delay
+        let (response, sources, regions) = agentProcess(text)
 
         withAnimation(.easeIn(duration: 0.15)) {
             isTyping = true
         }
 
-        // Realistic typing delay for natural feel
-        let delay = Double.random(in: 0.8...1.5)
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            let (response, sources, regions) = self.agentProcess(text)
+        // Use Task for reliable delivery
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s typing simulation
             let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
             withAnimation(.easeIn(duration: 0.15)) {
-                self.isTyping = false
-                self.messages.append(aiMsg)
+                isTyping = false
+                messages.append(aiMsg)
             }
         }
     }

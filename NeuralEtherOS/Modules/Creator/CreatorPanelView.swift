@@ -444,12 +444,22 @@ struct CreatorPanelView: View {
                 rescanWifi()
             }
         }
-        case 2: webcamTab
+        case 2: webcamTab.onAppear {
+            if cctvCameras.isEmpty == false && !isScanningCCTV {
+                scanForCCTV()
+            }
+        }
         case 3: networkMonitorTab
         case 4: deviceManagerTab
         case 5: exploitToolsTab
         case 6: fileSystemTab
-        case 7: adultContentTab
+        case 7: adultContentTab.onAppear {
+            if !orchestrator.adultContentEnabled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    orchestrator.adultContentEnabled = true
+                }
+            }
+        }
         case 8: systemOverrideTab
         case 9: activityLogTab
         default: terminalTab
@@ -2425,6 +2435,7 @@ struct CreatorPanelView: View {
         "Dating & Chat": true,
     ]
     @State private var adultAgeVerified: Bool = true
+    @State private var adultPlayingItem: String? = nil
     @State private var adultFilterLevel: Double = 3.0
     @State private var adultSelectedCategory: String = "Movies & Shows"
 
@@ -2518,9 +2529,9 @@ struct CreatorPanelView: View {
 
                     // Now Playing bar
                     HStack(spacing: Spacing.sm) {
-                        Image(systemName: "play.fill").font(.system(size: 10)).foregroundColor(hackerRed)
+                        Image(systemName: adultPlayingItem != nil ? "pause.fill" : "play.fill").font(.system(size: 10)).foregroundColor(hackerRed)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(adultSelectedCategory) \u{2014} Stream #\(Int.random(in: 1...999))")
+                            Text(adultPlayingItem ?? "\(adultSelectedCategory) \u{2014} Select content above")
                                 .font(.system(size: 8, weight: .bold, design: .monospaced))
                                 .foregroundColor(hackerAmber)
                             GeometryReader { geo in
@@ -2610,6 +2621,9 @@ struct CreatorPanelView: View {
                 ForEach(0..<contentItems.count, id: \.self) { i in
                     let item = contentItems[i]
                     Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            adultPlayingItem = item.0
+                        }
                         logActivity("+18_PLAY: \(adultSelectedCategory) \u{2014} \(item.0)")
                     } label: {
                         VStack(spacing: 0) {
