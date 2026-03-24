@@ -734,7 +734,7 @@ struct NeuralSearchView: View {
     private func forgeResponse(_ lang: String) -> String {
         var r = lang == "ro" ? "Status Creative Forge:\n" : "Creative Forge Status:\n"
         for task in orchestrator.forgeTasks {
-            let icon = task.status == .completed ? "[DONE]" : task.status == .processing ? "[RUNNING]" : "[QUEUED]"
+            let icon = task.status == .completed ? "[DONE]" : task.status == .synthesizing ? "[RUNNING]" : "[QUEUED]"
             r += "\n\(icon) \(task.name) \u{2014} \(task.status.label)"
             if task.progress > 0 && task.progress < 1 { r += " (\(Int(task.progress * 100))%)" }
         }
@@ -775,7 +775,10 @@ struct NeuralSearchView: View {
             if q.contains("+") || q.contains("plus") { result = "\(a) + \(b) = \(a + b)" }
             else if q.contains("-") || q.contains("minus") { result = "\(a) - \(b) = \(a - b)" }
             else if q.contains("*") || q.contains("inmulti") || q.contains("times") { result = "\(a) x \(b) = \(a * b)" }
-            else if (q.contains("/") || q.contains("imparti") || q.contains("divid")) && b != 0 { result = "\(a) / \(b) = \(String(format: \"%.2f\", Double(a) / Double(b)))" }
+            else if (q.contains("/") || q.contains("imparti") || q.contains("divid")) && b != 0 {
+                let formatted = String(format: "%.2f", Double(a) / Double(b))
+                result = "\(a) / \(b) = \(formatted)"
+            }
             else { result = "\(a) + \(b) = \(a + b)" }
         }
         if lang == "ro" {
