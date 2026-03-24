@@ -11,6 +11,8 @@ struct MainContainerView: View {
         case dashboard = "SOVEREIGN"
         case forge = "FORGE"
         case search = "SEARCH"
+        case photo = "PHOTO"
+        case video = "VIDEO"
         case security = "VAULT"
         case deploy = "DEPLOY"
         case creator = "CREATOR"
@@ -20,6 +22,8 @@ struct MainContainerView: View {
             case .dashboard: return "brain.head.profile"
             case .forge: return "bolt.fill"
             case .search: return "magnifyingglass"
+            case .photo: return "photo.artframe"
+            case .video: return "film"
             case .security: return "lock.shield"
             case .deploy: return "shippingbox"
             case .creator: return "crown.fill"
@@ -43,6 +47,10 @@ struct MainContainerView: View {
                         CreativeForgeView()
                     case .search:
                         NeuralSearchView()
+                    case .photo:
+                        PhotoEditorView()
+                    case .video:
+                        VideoEditorView()
                     case .security:
                         SecurityVaultView()
                     case .deploy:
@@ -63,12 +71,14 @@ struct MainContainerView: View {
     // MARK: - Custom Tab Bar
 
     private var customTabBar: some View {
-        HStack(spacing: 0) {
-            ForEach(Tab.allCases, id: \.rawValue) { tab in
-                tabButton(for: tab)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Tab.allCases, id: \.rawValue) { tab in
+                    tabButton(for: tab)
+                }
             }
+            .padding(.horizontal, Spacing.sm)
         }
-        .padding(.horizontal, Spacing.sm)
         .padding(.top, Spacing.md)
         .padding(.bottom, Spacing.xl)
         .background(

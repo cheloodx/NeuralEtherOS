@@ -27,6 +27,8 @@
 		8FB4156762CD894FB5894A69 /* DeploymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */; };
 		6684ACD11DCF5124B757C016 /* NeuralSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76EE19C3A923A398464643B5 /* NeuralSearchView.swift */; };
 		96084FFBA5E0DE359AE55686 /* CreatorPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFC202297956F60A6217CAB /* CreatorPanelView.swift */; };
+		4AA4596BA501975CBE0FB549 /* PhotoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D963A0CAC413B9B68B733B /* PhotoEditorView.swift */; };
+		D5BED0BBEB7439855EA9DD8E /* VideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85782F108932FE0AAB5B4E1E /* VideoEditorView.swift */; };
 		95197EF0C00D47E79F9B04B3 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */; };
 		1253613CF10DAF2FA7DE13DE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D5DE88EA417BDF66BA3E1894 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -52,6 +54,8 @@
 		9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeploymentHubView.swift; sourceTree = "<group>"; };
 		76EE19C3A923A398464643B5 /* NeuralSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralSearchView.swift; sourceTree = "<group>"; };
 		DAFC202297956F60A6217CAB /* CreatorPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPanelView.swift; sourceTree = "<group>"; };
+		F0D963A0CAC413B9B68B733B /* PhotoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoEditorView.swift; sourceTree = "<group>"; };
+		85782F108932FE0AAB5B4E1E /* VideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorView.swift; sourceTree = "<group>"; };
 		3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		F96FD3F547723E8AD6884A0C /* NeuralEtherOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeuralEtherOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A23BB9B9C4FB00984344C59 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -157,8 +161,10 @@
 				CFE10392CAC50C8C8551358F /* Creator */,
 				74324A6D0C2CAF93C3A55DAA /* Dashboard */,
 				9BF3FF50676933A263DE0CE6 /* DeploymentHub */,
+				407D78F8F7C9A5EACED349EE /* PhotoEditor */,
 				75D75A23C2B61BF9144770B9 /* Search */,
 				B34BFE5AF63D6CA2A2A4470C /* SecurityVault */,
+				D1FB417B8A32ACC8D78449B0 /* VideoEditor */,
 			);
 			path = Modules;
 			sourceTree = "<group>";
@@ -195,6 +201,14 @@
 			path = DeploymentHub;
 			sourceTree = "<group>";
 		};
+		407D78F8F7C9A5EACED349EE /* PhotoEditor */ = {
+			isa = PBXGroup;
+			children = (
+				F0D963A0CAC413B9B68B733B /* PhotoEditorView.swift */,
+			);
+			path = PhotoEditor;
+			sourceTree = "<group>";
+		};
 		75D75A23C2B61BF9144770B9 /* Search */ = {
 			isa = PBXGroup;
 			children = (
@@ -209,6 +223,14 @@
 				85CB9A31F8F793D42C925A63 /* SecurityVaultView.swift */,
 			);
 			path = SecurityVault;
+			sourceTree = "<group>";
+		};
+		D1FB417B8A32ACC8D78449B0 /* VideoEditor */ = {
+			isa = PBXGroup;
+			children = (
+				85782F108932FE0AAB5B4E1E /* VideoEditorView.swift */,
+			);
+			path = VideoEditor;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -290,6 +312,8 @@
 				8FB4156762CD894FB5894A69 /* DeploymentHubView.swift in Sources */,
 				6684ACD11DCF5124B757C016 /* NeuralSearchView.swift in Sources */,
 				96084FFBA5E0DE359AE55686 /* CreatorPanelView.swift in Sources */,
+				4AA4596BA501975CBE0FB549 /* PhotoEditorView.swift in Sources */,
+				D5BED0BBEB7439855EA9DD8E /* VideoEditorView.swift in Sources */,
 				95197EF0C00D47E79F9B04B3 /* Color+Hex.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
