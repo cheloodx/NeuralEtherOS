@@ -29,10 +29,17 @@ struct CreatorPanelView: View {
     @State private var showCrackedPassword: UUID? = nil
     @State private var bruteForceChars: String = ""
 
-    // Webcam
+    // CCTV / Webcam Scanner
     @State private var selectedCamera: Int = 0
     @State private var isRecording: Bool = false
     @State private var cameraZoom: Double = 1.0
+    @State private var cctvCameras: [CCTVCamera] = []
+    @State private var isScanningCCTV: Bool = false
+    @State private var cctvScanProgress: Double = 0.0
+    @State private var selectedCCTV: CCTVCamera? = nil
+    @State private var cctvViewMode: Int = 0  // 0 = list, 1 = grid, 2 = map
+    @State private var cctvConnectedCount: Int = 0
+    @State private var cctvRecordingIds: Set<UUID> = []
 
     // Matrix rain
     @State private var matrixColumns: [MatrixColumn] = []
@@ -54,6 +61,15 @@ struct CreatorPanelView: View {
         ("Front Camera", "faceid"),
         ("Rear Camera", "camera.fill"),
         ("External USB", "web.camera.fill"),
+    ]
+
+    private let cctvTypes = [
+        ("video.fill", "IP Camera"),
+        ("web.camera.fill", "CCTV Dome"),
+        ("camera.fill", "PTZ Camera"),
+        ("eye.fill", "Hidden Cam"),
+        ("building.2.fill", "Building Sec"),
+        ("car.fill", "Traffic Cam"),
     ]
 
     private let creatorTabs = [
@@ -946,120 +962,496 @@ struct CreatorPanelView: View {
         bruteForceChars = ""
     }
 
-    // MARK: - Tab 2: Webcam
+    // MARK: - Tab 2: CCTV / Webcam Scanner
 
     private var webcamTab: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            hackerSection("WEBCAM SURVEILLANCE", icon: "web.camera.fill")
+            hackerSection("CCTV / CAMERA SCANNER", icon: "video.fill")
 
-            // Camera selector
+            // Status bar
             HStack(spacing: Spacing.sm) {
-                ForEach(Array(cameras.enumerated()), id: \.offset) { index, cam in
-                    Button { selectedCamera = index } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: cam.1).font(.system(size: 10))
-                            Text(cam.0).font(.system(size: 8, weight: .bold, design: .monospaced))
-                        }
-                        .foregroundColor(selectedCamera == index ? hackerBG : hackerGreen.opacity(0.6))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(selectedCamera == index ? hackerGreen : hackerGreen.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                Circle().fill(isScanningCCTV ? hackerAmber : hackerGreen).frame(width: 6, height: 6)
+                Text("RADIUS: 1.0 KM")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+                Spacer()
+                Text("\(cctvCameras.count) CAMERAS FOUND")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerAmber)
+                Text("\(cctvConnectedCount) CONNECTED")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+            }
+            .padding(Spacing.sm)
+            .background(hackerGreen.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+
+            // Scan button
+            Button { scanForCCTV() } label: {
+                HStack(spacing: Spacing.sm) {
+                    if isScanningCCTV {
+                        ProgressView().tint(hackerBG).scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.system(size: 14))
                     }
-                    .buttonStyle(.plain)
+                    Text(isScanningCCTV ? "SCANNING 1KM RADIUS..." : "$ nmap -sV --script=rtsp-url-brute 192.168.0.0/16")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                }
+                .foregroundColor(hackerBG)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.md)
+                .background(isScanningCCTV ? hackerAmber : hackerGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+            .disabled(isScanningCCTV)
+
+            // Scan progress
+            if isScanningCCTV {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("SCANNING RTSP/ONVIF/HTTP STREAMS...")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerAmber)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2).fill(hackerAmber.opacity(0.1))
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(hackerAmber)
+                                .frame(width: geo.size.width * cctvScanProgress)
+                        }
+                    }
+                    .frame(height: 4)
                 }
             }
 
-            // Camera feed (simulated)
+            // View mode selector
+            if !cctvCameras.isEmpty {
+                HStack(spacing: Spacing.sm) {
+                    ForEach([(0, "list.bullet", "LIST"), (1, "square.grid.2x2", "GRID"), (2, "map", "MAP")], id: \.0) { mode, icon, label in
+                        Button { cctvViewMode = mode } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: icon).font(.system(size: 9))
+                                Text(label).font(.system(size: 8, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundColor(cctvViewMode == mode ? hackerBG : hackerGreen.opacity(0.6))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(cctvViewMode == mode ? hackerGreen : hackerGreen.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                }
+            }
+
+            // Selected camera live view
+            if let cam = selectedCCTV {
+                cctvLiveView(camera: cam)
+            }
+
+            // Camera list / grid
+            if cctvViewMode == 1 {
+                cctvGridView
+            } else if cctvViewMode == 2 {
+                cctvMapView
+            } else {
+                ForEach(cctvCameras) { cam in
+                    cctvCameraRow(camera: cam)
+                }
+            }
+        }
+    }
+
+    private func cctvLiveView(camera: CCTVCamera) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            // Live feed
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Color.black)
                     .aspectRatio(16/9, contentMode: .fit)
                     .overlay(
-                        VStack(spacing: Spacing.md) {
-                            Image(systemName: cameras[selectedCamera].1)
-                                .font(.system(size: 40))
-                                .foregroundColor(hackerGreen.opacity(0.3))
-                            Text("LIVE FEED \u{2014} \(cameras[selectedCamera].0)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundColor(hackerGreen.opacity(0.6))
-
+                        ZStack {
                             // Scanline effect
-                            VStack(spacing: 4) {
-                                ForEach(0..<8, id: \.self) { _ in
+                            VStack(spacing: 3) {
+                                ForEach(0..<20, id: \.self) { _ in
                                     Rectangle()
-                                        .fill(hackerGreen.opacity(Double.random(in: 0.02...0.08)))
+                                        .fill(hackerGreen.opacity(Double.random(in: 0.01...0.06)))
                                         .frame(height: 1)
                                 }
                             }
+
+                            VStack(spacing: Spacing.sm) {
+                                Image(systemName: camera.icon)
+                                    .font(.system(size: 36))
+                                    .foregroundColor(hackerGreen.opacity(0.4))
+                                Text("LIVE STREAM \u{2014} \(camera.name)")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundColor(hackerGreen.opacity(0.7))
+                                Text(camera.streamURL)
+                                    .font(.system(size: 7, design: .monospaced))
+                                    .foregroundColor(hackerDimGreen)
+                            }
+
+                            // Top-left: camera info
+                            VStack {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(camera.name)
+                                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                            .foregroundColor(hackerGreen)
+                                        Text(camera.ip)
+                                            .font(.system(size: 7, design: .monospaced))
+                                            .foregroundColor(hackerGreen.opacity(0.5))
+                                    }
+                                    .padding(4)
+                                    .background(Color.black.opacity(0.7))
+                                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                                    Spacer()
+
+                                    // Recording badge
+                                    if cctvRecordingIds.contains(camera.id) {
+                                        HStack(spacing: 3) {
+                                            Circle().fill(hackerRed).frame(width: 6, height: 6)
+                                            Text("REC")
+                                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                                .foregroundColor(hackerRed)
+                                        }
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .background(Color.black.opacity(0.7))
+                                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                                    }
+                                }
+                                .padding(Spacing.sm)
+                                Spacer()
+                                // Bottom overlay
+                                HStack {
+                                    Text("\(camera.resolution) @ \(camera.fps)fps")
+                                        .font(.system(size: 7, design: .monospaced))
+                                        .foregroundColor(hackerGreen.opacity(0.5))
+                                    Spacer()
+                                    Text("ZOOM: \(String(format: "%.1f", cameraZoom))x")
+                                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                        .foregroundColor(hackerGreen.opacity(0.5))
+                                    Spacer()
+                                    Text("\(camera.distance)m away")
+                                        .font(.system(size: 7, design: .monospaced))
+                                        .foregroundColor(hackerAmber.opacity(0.7))
+                                }
+                                .padding(Spacing.sm)
+                                .background(Color.black.opacity(0.6))
+                            }
                         }
                     )
-
-                // Recording indicator
-                if isRecording {
-                    VStack {
-                        HStack {
-                            HStack(spacing: 4) {
-                                Circle().fill(hackerRed).frame(width: 8, height: 8)
-                                Text("REC")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundColor(hackerRed)
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.black.opacity(0.7))
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                            Spacer()
-                        }
-                        .padding(Spacing.sm)
-                        Spacer()
-                    }
-                }
-
-                // Overlay info
-                VStack {
-                    Spacer()
-                    HStack {
-                        Text("ZOOM: \(String(format: "%.1f", cameraZoom))x")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundColor(hackerGreen.opacity(0.6))
-                        Spacer()
-                        Text("1920x1080 @ 30fps")
-                            .font(.system(size: 8, design: .monospaced))
-                            .foregroundColor(hackerGreen.opacity(0.4))
-                    }
-                    .padding(Spacing.sm)
-                    .background(Color.black.opacity(0.5))
-                }
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(
+                        cctvRecordingIds.contains(camera.id) ? hackerRed.opacity(0.5) : hackerGreen.opacity(0.2), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
             }
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(hackerGreen.opacity(0.2), lineWidth: 0.5))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
 
             // Zoom slider
             HStack(spacing: Spacing.md) {
                 Text("ZOOM")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                     .foregroundColor(hackerGreen.opacity(0.6))
-                Slider(value: $cameraZoom, in: 1.0...10.0, step: 0.5)
+                Slider(value: $cameraZoom, in: 1.0...20.0, step: 0.5)
                     .tint(hackerGreen)
                 Text("\(String(format: "%.1f", cameraZoom))x")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(hackerGreen)
-                    .frame(width: 36)
+                    .frame(width: 40)
             }
 
             // Controls
-            HStack(spacing: Spacing.md) {
-                hackerBtn(icon: "camera.fill", label: "CAPTURE") { logActivity("WEBCAM_CAPTURE") }
-                hackerBtn(icon: isRecording ? "stop.fill" : "record.circle", label: isRecording ? "STOP" : "RECORD") {
-                    isRecording.toggle()
-                    logActivity(isRecording ? "WEBCAM_RECORDING_STARTED" : "WEBCAM_RECORDING_STOPPED")
+            HStack(spacing: Spacing.sm) {
+                hackerBtn(icon: "camera.fill", label: "SNAPSHOT") {
+                    logActivity("CCTV_SNAPSHOT: \(camera.name)")
                 }
-                hackerBtn(icon: "arrow.triangle.2.circlepath", label: "SWITCH") {
-                    selectedCamera = (selectedCamera + 1) % cameras.count
+                hackerBtn(icon: cctvRecordingIds.contains(camera.id) ? "stop.fill" : "record.circle", label: cctvRecordingIds.contains(camera.id) ? "STOP REC" : "RECORD") {
+                    if cctvRecordingIds.contains(camera.id) {
+                        cctvRecordingIds.remove(camera.id)
+                        logActivity("CCTV_REC_STOP: \(camera.name)")
+                    } else {
+                        cctvRecordingIds.insert(camera.id)
+                        logActivity("CCTV_REC_START: \(camera.name)")
+                    }
                 }
-                hackerBtn(icon: "photo.on.rectangle", label: "GALLERY") { logActivity("WEBCAM_GALLERY_OPENED") }
+                hackerBtn(icon: "arrow.down.circle", label: "SAVE") {
+                    logActivity("CCTV_SAVE: \(camera.name)")
+                }
+                hackerBtn(icon: "xmark.circle", label: "CLOSE") {
+                    selectedCCTV = nil
+                }
             }
+        }
+    }
+
+    private var cctvGridView: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
+            ForEach(cctvCameras) { cam in
+                Button {
+                    selectedCCTV = cam
+                } label: {
+                    VStack(spacing: 4) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.black)
+                                .aspectRatio(16/9, contentMode: .fit)
+                                .overlay(
+                                    VStack(spacing: 2) {
+                                        Image(systemName: cam.icon)
+                                            .font(.system(size: 18))
+                                            .foregroundColor(cam.isOnline ? hackerGreen.opacity(0.4) : hackerRed.opacity(0.3))
+                                        // Scanlines
+                                        VStack(spacing: 2) {
+                                            ForEach(0..<5, id: \.self) { _ in
+                                                Rectangle()
+                                                    .fill(hackerGreen.opacity(Double.random(in: 0.02...0.06)))
+                                                    .frame(height: 1)
+                                            }
+                                        }
+                                    }
+                                )
+                            // Online indicator
+                            VStack {
+                                HStack {
+                                    Circle().fill(cam.isOnline ? hackerGreen : hackerRed).frame(width: 5, height: 5)
+                                    Spacer()
+                                    if cctvRecordingIds.contains(cam.id) {
+                                        Circle().fill(hackerRed).frame(width: 5, height: 5)
+                                    }
+                                }
+                                .padding(3)
+                                Spacer()
+                            }
+                        }
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+                            selectedCCTV?.id == cam.id ? hackerGreen : hackerGreen.opacity(0.1), lineWidth: 0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                        Text(cam.name)
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                            .lineLimit(1)
+                        Text("\(cam.distance)m")
+                            .font(.system(size: 6, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var cctvMapView: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            // Simulated radar/map view
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        ZStack {
+                            // Concentric circles (radar rings)
+                            ForEach([0.2, 0.4, 0.6, 0.8, 1.0], id: \.self) { scale in
+                                Circle()
+                                    .stroke(hackerGreen.opacity(0.1), lineWidth: 0.5)
+                                    .scaleEffect(scale)
+                            }
+
+                            // Cross hairs
+                            Rectangle()
+                                .fill(hackerGreen.opacity(0.08))
+                                .frame(width: 1)
+                            Rectangle()
+                                .fill(hackerGreen.opacity(0.08))
+                                .frame(height: 1)
+
+                            // Center point (you)
+                            Circle()
+                                .fill(hackerCyan)
+                                .frame(width: 8, height: 8)
+                            Circle()
+                                .stroke(hackerCyan.opacity(0.3), lineWidth: 1)
+                                .frame(width: 16, height: 16)
+
+                            // Camera dots
+                            ForEach(cctvCameras) { cam in
+                                let angle = Double(cam.name.hashValue % 360) * .pi / 180
+                                let dist = Double(cam.distance) / 1000.0 * 0.4
+                                Circle()
+                                    .fill(cam.isOnline ? hackerGreen : hackerRed)
+                                    .frame(width: 6, height: 6)
+                                    .offset(
+                                        x: cos(angle) * dist * 150,
+                                        y: sin(angle) * dist * 150
+                                    )
+                            }
+
+                            // Labels
+                            VStack {
+                                HStack {
+                                    Text("250m").font(.system(size: 6, design: .monospaced)).foregroundColor(hackerDimGreen)
+                                    Spacer()
+                                    Text("500m").font(.system(size: 6, design: .monospaced)).foregroundColor(hackerDimGreen)
+                                }
+                                Spacer()
+                                HStack {
+                                    Text("750m").font(.system(size: 6, design: .monospaced)).foregroundColor(hackerDimGreen)
+                                    Spacer()
+                                    Text("1000m").font(.system(size: 6, design: .monospaced)).foregroundColor(hackerDimGreen)
+                                }
+                            }
+                            .padding(Spacing.sm)
+                        }
+                    )
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(hackerGreen.opacity(0.2), lineWidth: 0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+
+            // Legend
+            HStack(spacing: Spacing.md) {
+                HStack(spacing: 3) {
+                    Circle().fill(hackerCyan).frame(width: 5, height: 5)
+                    Text("YOU").font(.system(size: 7, weight: .bold, design: .monospaced)).foregroundColor(hackerCyan)
+                }
+                HStack(spacing: 3) {
+                    Circle().fill(hackerGreen).frame(width: 5, height: 5)
+                    Text("ONLINE").font(.system(size: 7, weight: .bold, design: .monospaced)).foregroundColor(hackerGreen)
+                }
+                HStack(spacing: 3) {
+                    Circle().fill(hackerRed).frame(width: 5, height: 5)
+                    Text("OFFLINE").font(.system(size: 7, weight: .bold, design: .monospaced)).foregroundColor(hackerRed)
+                }
+            }
+        }
+    }
+
+    private func cctvCameraRow(camera: CCTVCamera) -> some View {
+        Button {
+            selectedCCTV = camera
+            logActivity("CCTV_ACCESS: \(camera.name) [\(camera.ip)]")
+        } label: {
+            VStack(spacing: Spacing.sm) {
+                HStack {
+                    // Status dot
+                    Circle()
+                        .fill(camera.isOnline ? hackerGreen : hackerRed)
+                        .frame(width: 8, height: 8)
+
+                    Image(systemName: camera.icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(camera.isOnline ? hackerGreen : hackerRed.opacity(0.5))
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(camera.name)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                        Text("IP: \(camera.ip) | PORT: \(camera.port)")
+                            .font(.system(size: 7, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("\(camera.distance)m")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(camera.distance < 300 ? hackerGreen : hackerAmber)
+                        Text(camera.type)
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                    }
+                }
+
+                // Details row
+                HStack(spacing: Spacing.md) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "lock.open.fill").font(.system(size: 7))
+                        Text(camera.vulnerability)
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(camera.vulnerability == "OPEN" ? hackerRed : hackerAmber)
+
+                    HStack(spacing: 2) {
+                        Image(systemName: "video.fill").font(.system(size: 7))
+                        Text(camera.resolution)
+                            .font(.system(size: 7, design: .monospaced))
+                    }
+                    .foregroundColor(hackerDimGreen)
+
+                    HStack(spacing: 2) {
+                        Image(systemName: "building.2.fill").font(.system(size: 7))
+                        Text(camera.location)
+                            .font(.system(size: 7, design: .monospaced))
+                    }
+                    .foregroundColor(hackerDimGreen)
+
+                    Spacer()
+
+                    if cctvRecordingIds.contains(camera.id) {
+                        HStack(spacing: 2) {
+                            Circle().fill(hackerRed).frame(width: 4, height: 4)
+                            Text("REC")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerRed)
+                        }
+                    }
+
+                    Text("TAP TO VIEW >")
+                        .font(.system(size: 7, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen.opacity(0.5))
+                }
+            }
+            .padding(Spacing.md)
+            .background(selectedCCTV?.id == camera.id ? hackerGreen.opacity(0.06) : hackerGreen.opacity(0.02))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+                selectedCCTV?.id == camera.id ? hackerGreen.opacity(0.4) :
+                camera.isOnline ? hackerGreen.opacity(0.1) : hackerRed.opacity(0.1), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func scanForCCTV() {
+        isScanningCCTV = true
+        cctvScanProgress = 0.0
+        cctvCameras = []
+        cctvConnectedCount = 0
+        selectedCCTV = nil
+        logActivity("CCTV_SCAN_START: radius=1000m protocols=RTSP,ONVIF,HTTP")
+
+        // Animate progress
+        let steps = 20
+        for i in 1...steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.15) {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    cctvScanProgress = Double(i) / Double(steps)
+                }
+
+                // Add cameras progressively
+                if i % 3 == 0 {
+                    let idx = i / 3 - 1
+                    if idx < CCTVCamera.mockCameras.count {
+                        cctvCameras.append(CCTVCamera.mockCameras[idx])
+                        if CCTVCamera.mockCameras[idx].isOnline {
+                            cctvConnectedCount += 1
+                        }
+                    }
+                }
+            }
+        }
+
+        // Finish
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(steps) * 0.15 + 0.5) {
+            isScanningCCTV = false
+            // Add any remaining cameras
+            for cam in CCTVCamera.mockCameras where !cctvCameras.contains(where: { $0.name == cam.name }) {
+                cctvCameras.append(cam)
+                if cam.isOnline { cctvConnectedCount += 1 }
+            }
+            logActivity("CCTV_SCAN_DONE: \(cctvCameras.count) cameras, \(cctvConnectedCount) online")
         }
     }
 
@@ -1614,6 +2006,43 @@ struct WiFiNetwork: Identifiable {
         WiFiNetwork(name: "TP-Link_Office", signal: -48, secured: true, mac: "FF:11:22:33:44:55", channel: 3, encryption: "WPA2", password: "0ff1c3_W1F1!pw"),
         WiFiNetwork(name: "Starlink_Sat", signal: -38, secured: true, mac: "AB:CD:EF:12:34:56", channel: 52, encryption: "WPA3", password: "St@rl1nk_S@t#X"),
         WiFiNetwork(name: "HiddenNet_X", signal: -62, secured: true, mac: "12:34:56:78:9A:BC", channel: 100, encryption: "WPA2-EAP", password: "H1dd3n_X_K3y!0"),
+    ]
+}
+
+// MARK: - CCTV Camera Model
+
+struct CCTVCamera: Identifiable {
+    let id = UUID()
+    let name: String
+    let ip: String
+    let port: Int
+    let type: String
+    let icon: String
+    let distance: Int // meters
+    let location: String
+    let resolution: String
+    let fps: Int
+    let isOnline: Bool
+    let vulnerability: String
+    let streamURL: String
+    let manufacturer: String
+
+    static let mockCameras: [CCTVCamera] = [
+        CCTVCamera(name: "Parking_Lot_CAM01", ip: "192.168.1.101", port: 554, type: "IP Camera", icon: "video.fill", distance: 45, location: "Parking B1", resolution: "1080p", fps: 30, isOnline: true, vulnerability: "OPEN", streamURL: "rtsp://192.168.1.101:554/stream1", manufacturer: "Hikvision"),
+        CCTVCamera(name: "Lobby_Entrance", ip: "192.168.1.102", port: 554, type: "CCTV Dome", icon: "web.camera.fill", distance: 120, location: "Main Lobby", resolution: "4K", fps: 25, isOnline: true, vulnerability: "DEFAULT_CREDS", streamURL: "rtsp://192.168.1.102:554/ch01", manufacturer: "Dahua"),
+        CCTVCamera(name: "Street_Corner_PTZ", ip: "10.0.0.50", port: 8080, type: "PTZ Camera", icon: "camera.fill", distance: 230, location: "Street Corner", resolution: "1080p", fps: 30, isOnline: true, vulnerability: "OPEN", streamURL: "http://10.0.0.50:8080/video", manufacturer: "Axis"),
+        CCTVCamera(name: "Cafe_Interior", ip: "192.168.2.15", port: 554, type: "IP Camera", icon: "video.fill", distance: 180, location: "Cafe Ground", resolution: "720p", fps: 15, isOnline: true, vulnerability: "WEP_KEY", streamURL: "rtsp://192.168.2.15:554/live", manufacturer: "TP-Link"),
+        CCTVCamera(name: "ATM_Security", ip: "10.0.1.200", port: 443, type: "Hidden Cam", icon: "eye.fill", distance: 310, location: "ATM Zone", resolution: "1080p", fps: 30, isOnline: false, vulnerability: "ENCRYPTED", streamURL: "https://10.0.1.200:443/secure", manufacturer: "Bosch"),
+        CCTVCamera(name: "Traffic_Cam_N1", ip: "172.16.0.88", port: 554, type: "Traffic Cam", icon: "car.fill", distance: 420, location: "North Road", resolution: "4K", fps: 30, isOnline: true, vulnerability: "DEFAULT_CREDS", streamURL: "rtsp://172.16.0.88:554/traffic", manufacturer: "Pelco"),
+        CCTVCamera(name: "Building_Rear_02", ip: "192.168.1.155", port: 554, type: "Building Sec", icon: "building.2.fill", distance: 85, location: "Rear Gate", resolution: "1080p", fps: 25, isOnline: true, vulnerability: "OPEN", streamURL: "rtsp://192.168.1.155:554/cam02", manufacturer: "Hikvision"),
+        CCTVCamera(name: "Pharmacy_Store", ip: "192.168.3.42", port: 80, type: "IP Camera", icon: "video.fill", distance: 550, location: "Pharmacy", resolution: "720p", fps: 15, isOnline: true, vulnerability: "WEP_KEY", streamURL: "http://192.168.3.42:80/mjpg", manufacturer: "Foscam"),
+        CCTVCamera(name: "School_Playground", ip: "10.10.0.12", port: 554, type: "CCTV Dome", icon: "web.camera.fill", distance: 680, location: "School Area", resolution: "1080p", fps: 25, isOnline: false, vulnerability: "ENCRYPTED", streamURL: "rtsp://10.10.0.12:554/play", manufacturer: "Samsung"),
+        CCTVCamera(name: "Gas_Station_01", ip: "192.168.5.99", port: 554, type: "PTZ Camera", icon: "camera.fill", distance: 740, location: "Gas Station", resolution: "4K", fps: 30, isOnline: true, vulnerability: "DEFAULT_CREDS", streamURL: "rtsp://192.168.5.99:554/fuel", manufacturer: "Dahua"),
+        CCTVCamera(name: "Park_East_Gate", ip: "172.16.1.33", port: 8554, type: "IP Camera", icon: "video.fill", distance: 350, location: "East Park", resolution: "1080p", fps: 20, isOnline: true, vulnerability: "OPEN", streamURL: "rtsp://172.16.1.33:8554/park", manufacturer: "Reolink"),
+        CCTVCamera(name: "Apartment_Hallway", ip: "192.168.0.200", port: 554, type: "Hidden Cam", icon: "eye.fill", distance: 95, location: "Apt Floor 3", resolution: "720p", fps: 15, isOnline: true, vulnerability: "DEFAULT_CREDS", streamURL: "rtsp://192.168.0.200:554/hall", manufacturer: "Xiaomi"),
+        CCTVCamera(name: "Mall_Entrance_W", ip: "10.0.2.75", port: 554, type: "CCTV Dome", icon: "web.camera.fill", distance: 890, location: "Mall West", resolution: "4K", fps: 25, isOnline: true, vulnerability: "WEP_KEY", streamURL: "rtsp://10.0.2.75:554/west", manufacturer: "Hikvision"),
+        CCTVCamera(name: "Traffic_Cam_S2", ip: "172.16.0.92", port: 554, type: "Traffic Cam", icon: "car.fill", distance: 960, location: "South Blvd", resolution: "1080p", fps: 30, isOnline: false, vulnerability: "ENCRYPTED", streamURL: "rtsp://172.16.0.92:554/south", manufacturer: "Pelco"),
+        CCTVCamera(name: "Restaurant_Back", ip: "192.168.4.18", port: 80, type: "IP Camera", icon: "video.fill", distance: 270, location: "Restaurant", resolution: "720p", fps: 15, isOnline: true, vulnerability: "OPEN", streamURL: "http://192.168.4.18:80/cam", manufacturer: "Foscam"),
     ]
 }
 
