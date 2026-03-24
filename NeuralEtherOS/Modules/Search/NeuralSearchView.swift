@@ -321,33 +321,21 @@ struct NeuralSearchView: View {
 
     private func sendMessage() {
         let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isTyping else { return }
+        guard !text.isEmpty else { return }
 
+        // 1. Add user message immediately
         let userMsg = ChatMessage(role: .user, content: text, timestamp: Date())
-        withAnimation(.easeIn(duration: 0.2)) {
-            messages.append(userMsg)
-        }
+        messages.append(userMsg)
         messageText = ""
         searchCount += 1
         showSuggestions = false
-        isInputFocused = false
 
-        // Pre-compute response BEFORE async delay
+        // 2. Compute AI response synchronously
         let (response, sources, regions) = agentProcess(text)
 
-        withAnimation(.easeIn(duration: 0.15)) {
-            isTyping = true
-        }
-
-        // Use Task for reliable delivery
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s typing simulation
-            let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
-            withAnimation(.easeIn(duration: 0.15)) {
-                isTyping = false
-                messages.append(aiMsg)
-            }
-        }
+        // 3. Add AI response immediately (no async, no delay, guaranteed to work)
+        let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
+        messages.append(aiMsg)
     }
 
     // MARK: - Language Detection

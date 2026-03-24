@@ -445,7 +445,11 @@ struct CreatorPanelView: View {
             }
         }
         case 2: webcamTab.onAppear {
-            if cctvCameras.isEmpty == false && !isScanningCCTV {
+            // Auto-select first camera so user sees live view immediately
+            if selectedCCTV == nil, let first = cctvCameras.first(where: { $0.isOnline }) {
+                selectedCCTV = first
+            }
+            if !isScanningCCTV {
                 scanForCCTV()
             }
         }
@@ -1220,17 +1224,20 @@ struct CreatorPanelView: View {
                     .aspectRatio(16/9, contentMode: .fit)
                     .overlay(
                         ZStack {
-                            // Noise/static background (simulates camera feed)
-                            VStack(spacing: 0) {
-                                ForEach(0..<30, id: \.self) { row in
-                                    HStack(spacing: 0) {
-                                        ForEach(0..<20, id: \.self) { col in
-                                            Rectangle()
-                                                .fill(hackerGreen.opacity(Double.random(in: 0.02...0.12)))
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        }
-                                    }
-                                    .frame(maxHeight: .infinity)
+                            // Lightweight static noise background (no performance hit)
+                            LinearGradient(
+                                colors: [hackerGreen.opacity(0.08), Color.black, hackerGreen.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+
+                            // Scanline effect
+                            VStack(spacing: 8) {
+                                ForEach(0..<12, id: \.self) { _ in
+                                    Rectangle()
+                                        .fill(hackerGreen.opacity(0.03))
+                                        .frame(height: 1)
+                                    Spacer()
                                 }
                             }
 
