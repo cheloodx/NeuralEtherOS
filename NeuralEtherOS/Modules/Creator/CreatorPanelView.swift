@@ -21,6 +21,13 @@ struct CreatorPanelView: View {
     // WiFi
     @State private var isScanning: Bool = false
     @State private var wifiNetworks: [WiFiNetwork] = WiFiNetwork.mockNetworks
+    @State private var crackingNetworkId: UUID? = nil
+    @State private var crackProgress: Double = 0.0
+    @State private var crackedPasswords: [UUID: String] = [:]
+    @State private var crackPhase: String = "INITIALIZING..."
+    @State private var crackTimer: Timer? = nil
+    @State private var showCrackedPassword: UUID? = nil
+    @State private var bruteForceChars: String = ""
 
     // Webcam
     @State private var selectedCamera: Int = 0
@@ -576,11 +583,26 @@ struct CreatorPanelView: View {
         terminalLines.append(TerminalLine(text: text, color: color, isCommand: false))
     }
 
-    // MARK: - Tab 1: WiFi Scanner
+    // MARK: - Tab 1: WiFi Scanner + Password Finder
 
     private var wifiTab: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            hackerSection("WIFI NETWORK SCANNER", icon: "wifi")
+            hackerSection("WIFI PASSWORD FINDER", icon: "wifi")
+
+            // Status bar
+            HStack(spacing: Spacing.sm) {
+                Circle().fill(hackerGreen).frame(width: 6, height: 6)
+                Text("WIFI ADAPTER: MONITOR MODE")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+                Spacer()
+                Text("\(wifiNetworks.count) TARGETS")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerAmber)
+            }
+            .padding(Spacing.sm)
+            .background(hackerGreen.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
 
             // Scan button
             Button { rescanWifi() } label: {
@@ -591,7 +613,7 @@ struct CreatorPanelView: View {
                         Image(systemName: "antenna.radiowaves.left.and.right")
                             .font(.system(size: 14))
                     }
-                    Text(isScanning ? "SCANNING..." : "$ scan --all-networks")
+                    Text(isScanning ? "SCANNING NETWORKS..." : "$ airodump-ng --scan-all")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                 }
                 .foregroundColor(hackerBG)
@@ -602,11 +624,139 @@ struct CreatorPanelView: View {
             }
             .buttonStyle(.plain)
 
+            // Cracking progress view
+            if let crackId = crackingNetworkId,
+               let net = wifiNetworks.first(where: { $0.id == crackId }) {
+                wifiCrackingView(network: net)
+            }
+
             // Network list
             ForEach(Array(wifiNetworks.enumerated()), id: \.element.id) { _, network in
                 wifiNetworkRow(network: network)
             }
+
+            // Cracked passwords summary
+            if !crackedPasswords.isEmpty {
+                wifiCrackedSummary
+            }
         }
+    }
+
+    private func wifiCrackingView(network: WiFiNetwork) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: "lock.open.trianglebadge.exclamationmark")
+                    .font(.system(size: 12))
+                    .foregroundColor(hackerRed)
+                Text("CRACKING: \(network.name)")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerRed)
+                Spacer()
+                Button {
+                    stopCracking()
+                } label: {
+                    Text("ABORT")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerRed)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(hackerRed, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text(crackPhase)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundColor(hackerAmber)
+
+            // Brute force character display
+            Text(bruteForceChars)
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(hackerGreen.opacity(0.6))
+                .lineLimit(2)
+
+            // Progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(hackerRed.opacity(0.1))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(
+                            LinearGradient(
+                                colors: [hackerRed, hackerAmber, hackerGreen],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * crackProgress)
+                }
+            }
+            .frame(height: 6)
+
+            HStack {
+                Text("\(Int(crackProgress * 100))%")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerAmber)
+                Spacer()
+                Text("HANDSHAKE CAPTURED")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(crackProgress > 0.1 ? hackerGreen : hackerDimGreen)
+            }
+        }
+        .padding(Spacing.md)
+        .background(hackerRed.opacity(0.05))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerRed.opacity(0.3), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private var wifiCrackedSummary: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: "key.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(hackerGreen)
+                Text("CRACKED PASSWORDS (\(crackedPasswords.count))")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+            }
+
+            ForEach(wifiNetworks.filter { crackedPasswords[$0.id] != nil }, id: \.id) { net in
+                HStack {
+                    Image(systemName: "wifi")
+                        .font(.system(size: 10))
+                        .foregroundColor(hackerGreen)
+                    Text(net.name)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                    Spacer()
+                    if showCrackedPassword == net.id {
+                        Text(crackedPasswords[net.id] ?? "")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerAmber)
+                    } else {
+                        Text("********")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                    }
+                    Button {
+                        if showCrackedPassword == net.id {
+                            showCrackedPassword = nil
+                        } else {
+                            showCrackedPassword = net.id
+                        }
+                    } label: {
+                        Image(systemName: showCrackedPassword == net.id ? "eye.slash" : "eye")
+                            .font(.system(size: 10))
+                            .foregroundColor(hackerGreen)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(Spacing.md)
+        .background(hackerGreen.opacity(0.05))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.2), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
     private func wifiNetworkRow(network: WiFiNetwork) -> some View {
@@ -628,7 +778,7 @@ struct CreatorPanelView: View {
                     Text("\(network.signal) dBm")
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundColor(network.signal > -50 ? hackerGreen : hackerAmber)
-                    Text(network.secured ? "\u{1F512} WPA3" : "\u{1F513} OPEN")
+                    Text(network.secured ? "\u{1F512} \(network.encryption)" : "\u{1F513} OPEN")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                         .foregroundColor(network.secured ? hackerGreen : hackerRed)
                 }
@@ -645,10 +795,84 @@ struct CreatorPanelView: View {
                 }
             }
             .frame(height: 4)
+
+            // Password crack button / status
+            if network.secured {
+                if crackedPasswords[network.id] != nil {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "checkmark.shield.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(hackerGreen)
+                        Text("PASSWORD FOUND")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                        Spacer()
+                        Button {
+                            if showCrackedPassword == network.id {
+                                showCrackedPassword = nil
+                            } else {
+                                showCrackedPassword = network.id
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: showCrackedPassword == network.id ? "eye.slash" : "eye")
+                                    .font(.system(size: 9))
+                                Text(showCrackedPassword == network.id ? (crackedPasswords[network.id] ?? "") : "REVEAL")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundColor(hackerAmber)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(hackerAmber.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else if crackingNetworkId == network.id {
+                    HStack(spacing: Spacing.sm) {
+                        ProgressView().tint(hackerRed).scaleEffect(0.7)
+                        Text("CRACKING...")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerRed)
+                    }
+                } else {
+                    Button {
+                        startCracking(network: network)
+                    } label: {
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: "key.fill")
+                                .font(.system(size: 10))
+                            Text("$ crack-password --target \(network.name)")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundColor(hackerRed)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(hackerRed.opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(hackerRed.opacity(0.3), lineWidth: 0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(crackingNetworkId != nil)
+                    .opacity(crackingNetworkId != nil ? 0.4 : 1.0)
+                }
+            } else {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(hackerAmber)
+                    Text("OPEN NETWORK — NO PASSWORD")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerAmber)
+                }
+            }
         }
         .padding(Spacing.md)
-        .background(hackerGreen.opacity(0.03))
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.1), lineWidth: 0.5))
+        .background(crackedPasswords[network.id] != nil ? hackerGreen.opacity(0.04) : hackerGreen.opacity(0.02))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+            crackedPasswords[network.id] != nil ? hackerGreen.opacity(0.3) :
+            crackingNetworkId == network.id ? hackerRed.opacity(0.3) :
+            hackerGreen.opacity(0.1), lineWidth: 0.5))
         .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
@@ -660,6 +884,66 @@ struct CreatorPanelView: View {
             wifiNetworks.shuffle()
             logActivity("WIFI_SCAN_COMPLETE: \(wifiNetworks.count) networks found")
         }
+    }
+
+    private func startCracking(network: WiFiNetwork) {
+        crackingNetworkId = network.id
+        crackProgress = 0.0
+        crackPhase = "CAPTURING HANDSHAKE..."
+        bruteForceChars = ""
+        logActivity("CRACK_START: \(network.name) [\(network.encryption)]")
+
+        let phases = [
+            (0.05, "CAPTURING HANDSHAKE..."),
+            (0.12, "HANDSHAKE CAPTURED — ANALYZING..."),
+            (0.20, "LOADING WORDLIST: rockyou.txt (14M entries)"),
+            (0.30, "DEAUTH ATTACK SENT — PMKID CAPTURED"),
+            (0.45, "BRUTE FORCE: TESTING COMBINATIONS..."),
+            (0.55, "HASHCAT MODE: WPA2-CCMP"),
+            (0.65, "DICTIONARY ATTACK IN PROGRESS..."),
+            (0.75, "KEY CANDIDATES FOUND: NARROWING..."),
+            (0.85, "FINAL VERIFICATION..."),
+            (0.95, "DECRYPTING KEY..."),
+            (1.0, "PASSWORD CRACKED!"),
+        ]
+
+        var totalDelay: Double = 0.0
+        for (i, phase) in phases.enumerated() {
+            let delay = Double(i) * 0.6 + Double.random(in: 0.2...0.5)
+            totalDelay = delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    crackProgress = phase.0
+                    crackPhase = phase.1
+                }
+                // Brute force chars simulation
+                let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*"
+                bruteForceChars = String((0..<40).map { _ in chars.randomElement()! })
+            }
+        }
+
+        // Final: reveal password
+        DispatchQueue.main.asyncAfter(deadline: .now() + totalDelay + 0.8) {
+            if crackingNetworkId == network.id {
+                crackedPasswords[network.id] = network.password
+                crackingNetworkId = nil
+                crackProgress = 0.0
+                bruteForceChars = ""
+                crackPhase = ""
+                logActivity("CRACK_SUCCESS: \(network.name) — PASSWORD FOUND")
+            }
+        }
+    }
+
+    private func stopCracking() {
+        if let netId = crackingNetworkId,
+           let net = wifiNetworks.first(where: { $0.id == netId }) {
+            logActivity("CRACK_ABORTED: \(net.name)")
+        }
+        crackingNetworkId = nil
+        crackProgress = 0.0
+        crackPhase = ""
+        bruteForceChars = ""
     }
 
     // MARK: - Tab 2: Webcam
@@ -1303,6 +1587,8 @@ struct WiFiNetwork: Identifiable {
     let secured: Bool
     let mac: String
     let channel: Int
+    let encryption: String
+    let password: String
 
     var signalIcon: String {
         if signal > -30 { return "wifi" }
@@ -1318,13 +1604,16 @@ struct WiFiNetwork: Identifiable {
     }
 
     static let mockNetworks: [WiFiNetwork] = [
-        WiFiNetwork(name: "NeuralEther_5G", signal: -25, secured: true, mac: "00:1A:2B:3C:4D:5E", channel: 36),
-        WiFiNetwork(name: "HomeNetwork_2.4G", signal: -42, secured: true, mac: "AA:BB:CC:DD:EE:FF", channel: 6),
-        WiFiNetwork(name: "CafeWiFi_Free", signal: -55, secured: false, mac: "11:22:33:44:55:66", channel: 11),
-        WiFiNetwork(name: "Neighbor_5G", signal: -68, secured: true, mac: "77:88:99:AA:BB:CC", channel: 44),
-        WiFiNetwork(name: "IoT_Devices", signal: -35, secured: true, mac: "DD:EE:FF:00:11:22", channel: 1),
-        WiFiNetwork(name: "Guest_Network", signal: -73, secured: false, mac: "33:44:55:66:77:88", channel: 9),
-        WiFiNetwork(name: "5G_Ultra_Fast", signal: -30, secured: true, mac: "99:AA:BB:CC:DD:EE", channel: 149),
+        WiFiNetwork(name: "NeuralEther_5G", signal: -25, secured: true, mac: "00:1A:2B:3C:4D:5E", channel: 36, encryption: "WPA3", password: "N3ur@l_Eth3r!2026"),
+        WiFiNetwork(name: "HomeNetwork_2.4G", signal: -42, secured: true, mac: "AA:BB:CC:DD:EE:FF", channel: 6, encryption: "WPA2", password: "MyH0m3P@ss#99"),
+        WiFiNetwork(name: "CafeWiFi_Free", signal: -55, secured: false, mac: "11:22:33:44:55:66", channel: 11, encryption: "OPEN", password: ""),
+        WiFiNetwork(name: "Neighbor_5G", signal: -68, secured: true, mac: "77:88:99:AA:BB:CC", channel: 44, encryption: "WPA2", password: "V3c1n_Secur3!x"),
+        WiFiNetwork(name: "IoT_Devices", signal: -35, secured: true, mac: "DD:EE:FF:00:11:22", channel: 1, encryption: "WPA", password: "iot12345"),
+        WiFiNetwork(name: "Guest_Network", signal: -73, secured: false, mac: "33:44:55:66:77:88", channel: 9, encryption: "OPEN", password: ""),
+        WiFiNetwork(name: "5G_Ultra_Fast", signal: -30, secured: true, mac: "99:AA:BB:CC:DD:EE", channel: 149, encryption: "WPA3", password: "Ultr@F@st_5G!#2026"),
+        WiFiNetwork(name: "TP-Link_Office", signal: -48, secured: true, mac: "FF:11:22:33:44:55", channel: 3, encryption: "WPA2", password: "0ff1c3_W1F1!pw"),
+        WiFiNetwork(name: "Starlink_Sat", signal: -38, secured: true, mac: "AB:CD:EF:12:34:56", channel: 52, encryption: "WPA3", password: "St@rl1nk_S@t#X"),
+        WiFiNetwork(name: "HiddenNet_X", signal: -62, secured: true, mac: "12:34:56:78:9A:BC", channel: 100, encryption: "WPA2-EAP", password: "H1dd3n_X_K3y!0"),
     ]
 }
 
