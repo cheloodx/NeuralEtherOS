@@ -1,9 +1,9 @@
 import SwiftUI
 
 // MARK: - Creator Panel View
-// Advanced Creator Control Center with 100% access.
+// HACKER TERMINAL THEME — Green-on-black terminal aesthetic
 // Access code: "test123"
-// Features: +18, WiFi Scanner, Webcam, Network Monitor, Device Manager, Content Filter, System Override, Activity Log
+// Features: Terminal, WiFi Scanner, Webcam, Network Monitor, Device Manager, Content Filter, System Override, Activity Log, File System, Exploit Tools
 
 struct CreatorPanelView: View {
     @EnvironmentObject var orchestrator: NeuralOrchestrator
@@ -12,6 +12,11 @@ struct CreatorPanelView: View {
     @State private var showAccessDenied: Bool = false
     @State private var authAnimating: Bool = false
     @State private var selectedTab: Int = 0
+
+    // Terminal
+    @State private var terminalLines: [TerminalLine] = []
+    @State private var terminalInput: String = ""
+    @State private var cursorBlink: Bool = true
 
     // WiFi
     @State private var isScanning: Bool = false
@@ -22,12 +27,21 @@ struct CreatorPanelView: View {
     @State private var isRecording: Bool = false
     @State private var cameraZoom: Double = 1.0
 
-    // Network Monitor
-    @State private var networkTraffic: Double = 0.0
-    @State private var trafficTimer: Timer? = nil
+    // Matrix rain
+    @State private var matrixColumns: [MatrixColumn] = []
+    @State private var matrixTimer: Timer? = nil
 
     // Activity Log
     @State private var activityLog: [ActivityEntry] = ActivityEntry.initial
+
+    // Hacker colors
+    private let hackerGreen = Color(hex: "#00FF41")
+    private let hackerDarkGreen = Color(hex: "#008F11")
+    private let hackerBG = Color(hex: "#0D0208")
+    private let hackerDimGreen = Color(hex: "#003B00")
+    private let hackerAmber = Color(hex: "#FFB000")
+    private let hackerRed = Color(hex: "#FF0033")
+    private let hackerCyan = Color(hex: "#00FFFF")
 
     private let cameras = [
         ("Front Camera", "faceid"),
@@ -36,225 +50,308 @@ struct CreatorPanelView: View {
     ]
 
     private let creatorTabs = [
-        ("shield.fill", "CONTROLS"),
+        (">_", "TERMINAL"),
+        ("wifi", "WIFI"),
+        ("web.camera.fill", "WEBCAM"),
         ("network", "NETWORK"),
         ("desktopcomputer", "DEVICES"),
-        ("line.3.horizontal.decrease.circle", "FILTERS"),
+        ("lock.shield", "EXPLOITS"),
+        ("folder.fill", "FILES"),
+        ("eye.fill", "+18"),
         ("gearshape.2.fill", "OVERRIDE"),
         ("list.bullet.rectangle", "LOG"),
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
-                headerSection
+        ZStack {
+            hackerBG.ignoresSafeArea()
 
-                if isAuthenticated {
-                    tabSelector
-                    tabContent
-                } else {
-                    authenticationSection
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    if isAuthenticated {
+                        hackerHeader
+                        tabSelector
+                        tabContent
+                    } else {
+                        hackerLoginScreen
+                    }
                 }
-            }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.top, Spacing.xxl)
-            .padding(.bottom, Spacing.massive)
-        }
-        .background(Color.surface)
-        .onDisappear {
-            trafficTimer?.invalidate()
-        }
-    }
-
-    // MARK: - Header
-
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            HStack(spacing: Spacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.neuralWarning, Color.neuralError],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.white)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("CREATOR COMMAND CENTER")
-                        .font(NeuralFont.displaySmall())
-                        .foregroundColor(.onSurface)
-                    Text(isAuthenticated
-                        ? "SOVEREIGN ACCESS \u{2014} 100% CONTROL ACTIVE"
-                        : "RESTRICTED \u{2014} Authentication Required")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(isAuthenticated ? .neuralSuccess : .neuralWarning)
-                }
-                Spacer()
+                .padding(.horizontal, Spacing.md)
+                .padding(.top, Spacing.lg)
+                .padding(.bottom, Spacing.massive)
             }
 
-            if isAuthenticated {
-                HStack(spacing: Spacing.lg) {
-                    statBadge(value: "100%", label: "ACCESS", color: .neuralSuccess)
-                    statBadge(value: "6", label: "MODULES", color: .neuralPrimary)
-                    statBadge(value: "\(orchestrator.activeNodes)", label: "NODES", color: .neuralTertiary)
-                    statBadge(value: "LIVE", label: "STATUS", color: .neuralWarning)
-                }
+            // Matrix rain overlay when not authenticated
+            if !isAuthenticated {
+                matrixRainOverlay
+                    .allowsHitTesting(false)
             }
         }
+        .onAppear { startMatrixRain() }
+        .onDisappear { matrixTimer?.invalidate() }
     }
 
-    private func statBadge(value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                .foregroundColor(color)
-            Text(label)
-                .font(.system(size: 7, weight: .medium, design: .monospaced))
-                .foregroundColor(.onSurfaceVariant.opacity(0.5))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.sm)
-        .background(color.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-    }
+    // MARK: - Matrix Rain Overlay
 
-    // MARK: - Authentication
-
-    private var authenticationSection: some View {
-        VStack(spacing: Spacing.xl) {
-            // Lock icon
+    private var matrixRainOverlay: some View {
+        GeometryReader { geo in
             ZStack {
-                Circle()
-                    .fill(Color.neuralWarning.opacity(0.08))
-                    .frame(width: 80, height: 80)
-                Circle()
-                    .fill(Color.neuralWarning.opacity(0.15))
-                    .frame(width: 60, height: 60)
-                Image(systemName: authAnimating ? "lock.open.fill" : "lock.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.neuralWarning)
+                ForEach(Array(matrixColumns.enumerated()), id: \.offset) { _, col in
+                    Text(col.char)
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen.opacity(col.opacity))
+                        .position(x: col.x, y: col.y)
+                }
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .opacity(0.15)
+    }
+
+    private func startMatrixRain() {
+        let chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEF0123456789"
+        matrixTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { _ in
+            if matrixColumns.count > 40 { matrixColumns.removeFirst(5) }
+            let newCol = MatrixColumn(
+                char: String(chars.randomElement() ?? "0"),
+                x: CGFloat.random(in: 0...380),
+                y: CGFloat.random(in: 0...800),
+                opacity: Double.random(in: 0.1...0.8)
+            )
+            matrixColumns.append(newCol)
+        }
+    }
+
+    // MARK: - Hacker Login Screen
+
+    private var hackerLoginScreen: some View {
+        VStack(spacing: Spacing.xl) {
+            Spacer().frame(height: 40)
+
+            // ASCII art skull
+            VStack(spacing: 0) {
+                Text("    ██████╗ ██████╗  ██████╗ ████████╗")
+                Text("    ██╔══██╗██╔══██╗██╔═══██╗╚══██╔══╝")
+                Text("    ██████╔╝██████╔╝██║   ██║   ██║   ")
+                Text("    ██╔══██╗██╔══██╗██║   ██║   ██║   ")
+                Text("    ██║  ██║██║  ██║╚██████╔╝   ██║   ")
+                Text("    ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝    ╚═╝   ")
+            }
+            .font(.system(size: 6, weight: .regular, design: .monospaced))
+            .foregroundColor(hackerGreen.opacity(0.6))
             .frame(maxWidth: .infinity)
-            .padding(.top, Spacing.xl)
 
-            Text("CREATOR AUTHENTICATION")
-                .font(NeuralFont.headlineSmall())
-                .foregroundColor(.onSurface)
-                .frame(maxWidth: .infinity)
+            // Terminal box
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack(spacing: Spacing.sm) {
+                    Circle().fill(hackerRed).frame(width: 8, height: 8)
+                    Circle().fill(hackerAmber).frame(width: 8, height: 8)
+                    Circle().fill(hackerGreen).frame(width: 8, height: 8)
+                    Spacer()
+                    Text("root@neural-ether:~")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.top, Spacing.sm)
 
-            Text("Enter your creator access code to unlock\nfull administrative control over all systems.")
-                .font(NeuralFont.bodyMedium())
-                .foregroundColor(.onSurfaceVariant)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                Divider().background(hackerDimGreen)
 
-            // Code input
-            VStack(spacing: Spacing.md) {
-                HStack(spacing: Spacing.md) {
-                    Image(systemName: "key.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.neuralWarning)
+                // Terminal output
+                VStack(alignment: .leading, spacing: 4) {
+                    termLine("[SYSTEM] Neural Ether OS v3.7.1", color: hackerDimGreen)
+                    termLine("[SYSTEM] Initializing secure shell...", color: hackerDimGreen)
+                    termLine("[SYSTEM] Encryption: AES-512-GCM", color: hackerDimGreen)
+                    termLine("[WARNING] Unauthorized access detected", color: hackerAmber)
+                    termLine("[FIREWALL] Blocking external intrusion...", color: hackerRed)
+                    termLine("", color: hackerGreen)
+                    termLine("root@neural-ether:~ $ ENTER CREATOR ACCESS CODE", color: hackerGreen)
+                }
+                .padding(.horizontal, Spacing.md)
 
-                    SecureField("", text: $accessCode, prompt: Text("ACCESS_CODE")
-                        .foregroundColor(.onSurfaceVariant.opacity(0.4)))
+                // Code input
+                HStack(spacing: Spacing.sm) {
+                    Text(">_")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+
+                    SecureField("", text: $accessCode, prompt: Text("********")
+                        .foregroundColor(hackerDimGreen))
                         .font(.system(size: 16, weight: .medium, design: .monospaced))
-                        .foregroundColor(.onSurface)
+                        .foregroundColor(hackerGreen)
                         .textFieldStyle(PlainTextFieldStyle())
                         .onSubmit { authenticateCreator() }
+
+                    Text(cursorBlink ? "\u{2588}" : " ")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                        .onAppear {
+                            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+                                cursorBlink.toggle()
+                            }
+                        }
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.vertical, Spacing.lg)
-                .background(Color.surfaceContainerLow)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
-                .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadius.lg)
-                        .stroke(
-                            showAccessDenied ? Color.neuralError.opacity(0.5) : Color.outlineVariant.opacity(0.1),
-                            lineWidth: 1
-                        )
-                )
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.md)
 
                 if showAccessDenied {
                     HStack(spacing: Spacing.sm) {
-                        Image(systemName: "xmark.octagon.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.neuralError)
-                        Text("ACCESS DENIED \u{2014} Invalid code.")
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundColor(.neuralError)
+                        Text("[ACCESS DENIED]")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerRed)
+                        Text("Invalid credentials. Attempt logged.")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(hackerRed.opacity(0.7))
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .padding(.horizontal, Spacing.md)
+                    .transition(.opacity)
                 }
-            }
-            .padding(.horizontal, Spacing.lg)
 
-            Button { authenticateCreator() } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "lock.open.fill")
-                        .font(.system(size: 16))
-                    Text("AUTHENTICATE")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                // Authenticate button
+                Button { authenticateCreator() } label: {
+                    HStack(spacing: Spacing.sm) {
+                        Text("$")
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        Text("sudo authenticate --force")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(hackerBG)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.md)
+                    .background(hackerGreen)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
-                .foregroundColor(.surface)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.lg)
-                .background(
-                    LinearGradient(
-                        colors: [Color.neuralWarning, Color.neuralError],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
+                .buttonStyle(.plain)
+                .padding(.horizontal, Spacing.md)
+                .padding(.bottom, Spacing.md)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, Spacing.lg)
+            .background(hackerBG)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(hackerGreen.opacity(0.3), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .shadow(color: hackerGreen.opacity(0.15), radius: 20)
 
-            // Hint
+            // Warning text
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "info.circle")
+                Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 12))
-                Text("Only the creator can access this panel.")
+                Text("Authorized personnel only. All access is logged.")
                     .font(.system(size: 10, design: .monospaced))
             }
-            .foregroundColor(.onSurfaceVariant.opacity(0.4))
+            .foregroundColor(hackerAmber.opacity(0.5))
+            .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, Spacing.xl)
-        .background(Color.surfaceContainerLow.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.xl))
+    }
+
+    private func termLine(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .regular, design: .monospaced))
+            .foregroundColor(color)
+    }
+
+    // MARK: - Hacker Header (after auth)
+
+    private var hackerHeader: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(spacing: Spacing.md) {
+                // Skull icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(hackerGreen.opacity(0.08))
+                        .frame(width: 44, height: 44)
+                    Text("\u{2620}")
+                        .font(.system(size: 24))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: Spacing.sm) {
+                        Text("root@neural-ether")
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                        Text("#")
+                            .font(.system(size: 16, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerAmber)
+                    }
+                    Text("CREATOR MODE \u{2014} 100% ACCESS GRANTED")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen.opacity(0.6))
+                }
+                Spacer()
+
+                // Logout
+                Button {
+                    withAnimation { isAuthenticated = false }
+                    accessCode = ""
+                } label: {
+                    VStack(spacing: 2) {
+                        Image(systemName: "power")
+                            .font(.system(size: 16))
+                        Text("EXIT")
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(hackerRed)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Stats bar
+            HStack(spacing: Spacing.sm) {
+                hackerStat("ACCESS", "100%", hackerGreen)
+                hackerStat("MODULES", "10", hackerCyan)
+                hackerStat("NODES", "\(orchestrator.activeNodes)", hackerAmber)
+                hackerStat("THREATS", "0", hackerRed)
+                hackerStat("UPTIME", "99.9%", hackerGreen)
+            }
+        }
+    }
+
+    private func hackerStat(_ label: String, _ value: String, _ color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 6, weight: .medium, design: .monospaced))
+                .foregroundColor(color.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xs)
+        .background(color.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay(RoundedRectangle(cornerRadius: 3).stroke(color.opacity(0.15), lineWidth: 0.5))
     }
 
     // MARK: - Tab Selector
 
     private var tabSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
+            HStack(spacing: 4) {
                 ForEach(Array(creatorTabs.enumerated()), id: \.offset) { index, tab in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { selectedTab = index }
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedTab = index }
                     } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: tab.0)
-                                .font(.system(size: 11))
+                        HStack(spacing: 3) {
+                            if tab.0 == ">_" {
+                                Text(">_")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            } else {
+                                Image(systemName: tab.0)
+                                    .font(.system(size: 9))
+                            }
                             Text(tab.1)
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
                         }
-                        .foregroundColor(selectedTab == index ? .surface : .onSurfaceVariant)
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, 8)
-                        .background(
-                            selectedTab == index
-                                ? LinearGradient(colors: [Color.neuralWarning, Color.neuralError], startPoint: .leading, endPoint: .trailing)
-                                : LinearGradient(colors: [Color.surfaceContainerLow, Color.surfaceContainerLow], startPoint: .leading, endPoint: .trailing)
+                        .foregroundColor(selectedTab == index ? hackerBG : hackerGreen.opacity(0.6))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(selectedTab == index ? hackerGreen : hackerGreen.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(hackerGreen.opacity(selectedTab == index ? 0 : 0.2), lineWidth: 0.5)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
                     }
                     .buttonStyle(.plain)
                 }
@@ -265,993 +362,1028 @@ struct CreatorPanelView: View {
     @ViewBuilder
     private var tabContent: some View {
         switch selectedTab {
-        case 0: controlsTab
-        case 1: networkMonitorTab
-        case 2: deviceManagerTab
-        case 3: contentFilterTab
-        case 4: systemOverrideTab
-        case 5: activityLogTab
-        default: controlsTab
+        case 0: terminalTab
+        case 1: wifiTab
+        case 2: webcamTab
+        case 3: networkMonitorTab
+        case 4: deviceManagerTab
+        case 5: exploitToolsTab
+        case 6: fileSystemTab
+        case 7: adultContentTab
+        case 8: systemOverrideTab
+        case 9: activityLogTab
+        default: terminalTab
         }
     }
 
-    // MARK: - Tab 0: Controls (Main toggles + panels)
+    // MARK: - Tab 0: Terminal
 
-    private var controlsTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("SOVEREIGN CONTROLS", icon: "shield.fill")
-
-            creatorToggle(
-                icon: "exclamationmark.shield.fill",
-                title: "+18 ADULT CONTENT",
-                subtitle: "Unlock age-restricted content across all modules",
-                isOn: $orchestrator.adultContentEnabled,
-                accentColor: .neuralError
-            )
-
-            creatorToggle(
-                icon: "wifi",
-                title: "WIFI NETWORK SCANNER",
-                subtitle: "Scan and monitor nearby WiFi networks",
-                isOn: $orchestrator.wifiAccessEnabled,
-                accentColor: .neuralPrimary
-            )
-
-            creatorToggle(
-                icon: "web.camera.fill",
-                title: "WEBCAM ACCESS",
-                subtitle: "Access camera feeds with capture and record",
-                isOn: $orchestrator.webcamAccessEnabled,
-                accentColor: .neuralTertiary
-            )
-
-            if orchestrator.adultContentEnabled { adultContentPanel }
-            if orchestrator.wifiAccessEnabled { wifiScannerPanel }
-            if orchestrator.webcamAccessEnabled { webcamFeedPanel }
-
-            permissionsSection
-            sessionInfoSection
-        }
-    }
-
-    // MARK: - Tab 1: Network Monitor
-
-    private var networkMonitorTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("NETWORK TRAFFIC MONITOR", icon: "network")
-
-            InsightCard {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("REAL-TIME TRAFFIC")
-                                .font(NeuralFont.headlineSmall())
-                                .foregroundColor(.neuralPrimary)
-                            Text("Monitoring all \(orchestrator.activeNodes) nodes")
-                                .font(NeuralFont.bodySmall())
-                                .foregroundColor(.onSurfaceVariant)
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(String(format: "%.1f", Double.random(in: 2.5...8.5))) GB/s")
-                                .font(.system(size: 16, weight: .bold, design: .monospaced))
-                                .foregroundColor(.neuralPrimary)
-                            Text("THROUGHPUT")
-                                .font(.system(size: 7, weight: .medium, design: .monospaced))
-                                .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                        }
-                    }
-
-                    // Traffic bars (simulated)
-                    VStack(spacing: Spacing.sm) {
-                        trafficRow(region: "Europe", percent: Double.random(in: 0.6...0.95), color: .neuralPrimary)
-                        trafficRow(region: "Americas", percent: Double.random(in: 0.5...0.85), color: .neuralTertiary)
-                        trafficRow(region: "Asia-Pacific", percent: Double.random(in: 0.7...0.98), color: .neuralWarning)
-                        trafficRow(region: "Africa", percent: Double.random(in: 0.2...0.5), color: .neuralSuccess)
-                        trafficRow(region: "Middle East", percent: Double.random(in: 0.3...0.6), color: .neuralError)
-                    }
-
-                    // Stats grid
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.md) {
-                        networkStat(label: "TOTAL REQUESTS", value: "\(Int.random(in: 1_200_000...3_500_000))", icon: "arrow.up.arrow.down")
-                        networkStat(label: "AVG LATENCY", value: "\(String(format: "%.1f", orchestrator.latency))ms", icon: "clock")
-                        networkStat(label: "UPTIME", value: "99.97%", icon: "checkmark.circle")
-                        networkStat(label: "ACTIVE CONN", value: "\(Int.random(in: 45_000...120_000))", icon: "link")
-                        networkStat(label: "BANDWIDTH", value: "\(Int.random(in: 50...120)) TB/day", icon: "arrow.down.circle")
-                        networkStat(label: "CDN NODES", value: "47", icon: "server.rack")
-                    }
-                }
-            }
-
-            InsightCard(title: "FIREWALL STATUS") {
-                VStack(spacing: Spacing.md) {
-                    firewallRow(name: "DDoS Protection", status: "ACTIVE", color: .neuralSuccess)
-                    firewallRow(name: "Rate Limiter", status: "ACTIVE", color: .neuralSuccess)
-                    firewallRow(name: "Geo-Blocking", status: "CONFIGURED", color: .neuralWarning)
-                    firewallRow(name: "SSL/TLS", status: "AES-512", color: .neuralSuccess)
-                    firewallRow(name: "Intrusion Detection", status: "MONITORING", color: .neuralPrimary)
-                }
-            }
-        }
-    }
-
-    private func trafficRow(region: String, percent: Double, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(region)
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.onSurface)
+    private var terminalTab: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Terminal window chrome
+            HStack(spacing: Spacing.sm) {
+                Circle().fill(hackerRed).frame(width: 8, height: 8)
+                Circle().fill(hackerAmber).frame(width: 8, height: 8)
+                Circle().fill(hackerGreen).frame(width: 8, height: 8)
                 Spacer()
-                Text("\(Int(percent * 100))%")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(color)
+                Text("bash \u{2014} root@neural-ether \u{2014} 80x24")
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundColor(hackerDimGreen)
             }
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.sm)
+            .background(hackerDimGreen.opacity(0.15))
+
+            // Terminal output
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    // Boot sequence
+                    Text("Neural Ether OS v3.7.1 \u{2014} Creator Shell")
+                        .foregroundColor(hackerGreen)
+                    Text("Type 'help' for available commands")
+                        .foregroundColor(hackerDimGreen)
+                    Text("")
+
+                    ForEach(Array(terminalLines.enumerated()), id: \.offset) { _, line in
+                        HStack(alignment: .top, spacing: 0) {
+                            if line.isCommand {
+                                Text("root@neural-ether:~$ ")
+                                    .foregroundColor(hackerGreen)
+                            }
+                            Text(line.text)
+                                .foregroundColor(line.color)
+                        }
+                    }
+
+                    // Input line
+                    HStack(spacing: 0) {
+                        Text("root@neural-ether:~$ ")
+                            .foregroundColor(hackerGreen)
+                        TextField("", text: $terminalInput, prompt: Text("")
+                            .foregroundColor(hackerDimGreen))
+                            .foregroundColor(hackerGreen)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .onSubmit { executeCommand() }
+                        Text(cursorBlink ? "\u{2588}" : " ")
+                            .foregroundColor(hackerGreen)
+                    }
+                }
+                .font(.system(size: 11, weight: .regular, design: .monospaced))
+                .padding(Spacing.md)
+            }
+            .frame(minHeight: 280)
+            .background(hackerBG)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(hackerGreen.opacity(0.2), lineWidth: 0.5)
+            )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func executeCommand() {
+        let cmd = terminalInput.trimmingCharacters(in: .whitespaces).lowercased()
+        terminalLines.append(TerminalLine(text: terminalInput, color: hackerGreen, isCommand: true))
+        terminalInput = ""
+
+        switch cmd {
+        case "help":
+            addOutput("Available commands:", hackerCyan)
+            addOutput("  help          \u{2014} Show this help", hackerDimGreen)
+            addOutput("  status        \u{2014} System status", hackerDimGreen)
+            addOutput("  scan wifi     \u{2014} Scan WiFi networks", hackerDimGreen)
+            addOutput("  scan ports    \u{2014} Port scanner", hackerDimGreen)
+            addOutput("  whoami        \u{2014} Current user info", hackerDimGreen)
+            addOutput("  ifconfig      \u{2014} Network interfaces", hackerDimGreen)
+            addOutput("  nmap          \u{2014} Network mapper", hackerDimGreen)
+            addOutput("  ps aux        \u{2014} Running processes", hackerDimGreen)
+            addOutput("  netstat       \u{2014} Network connections", hackerDimGreen)
+            addOutput("  cat /etc/keys \u{2014} View encryption keys", hackerDimGreen)
+            addOutput("  clear         \u{2014} Clear terminal", hackerDimGreen)
+            addOutput("  hack          \u{2014} \u{26A0} Penetration test", hackerDimGreen)
+            addOutput("  matrix        \u{2014} Matrix mode", hackerDimGreen)
+        case "status":
+            addOutput("[SYSTEM STATUS]", hackerCyan)
+            addOutput("  CPU:      87.3% \u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2591}\u{2591}", hackerGreen)
+            addOutput("  RAM:      12.4 / 16.0 GB", hackerGreen)
+            addOutput("  DISK:     234 / 512 GB SSD", hackerGreen)
+            addOutput("  NETWORK:  \(String(format: "%.1f", Double.random(in: 2.5...8.5))) Gbps", hackerGreen)
+            addOutput("  NODES:    \(orchestrator.activeNodes) active", hackerAmber)
+            addOutput("  UPTIME:   47d 12h 33m", hackerGreen)
+            addOutput("  THREATS:  0 detected", hackerGreen)
+        case "whoami":
+            addOutput("root (uid=0) \u{2014} CREATOR", hackerGreen)
+            addOutput("Access Level: SOVEREIGN (100%)", hackerAmber)
+            addOutput("Encryption: AES-512-GCM", hackerGreen)
+            addOutput("Session: \(UUID().uuidString.prefix(8))", hackerDimGreen)
+        case "scan wifi":
+            addOutput("[WIFI SCANNER] Scanning nearby networks...", hackerCyan)
+            for net in wifiNetworks {
+                let bar = String(repeating: "\u{2588}", count: net.signal / 10)
+                addOutput("  \(net.name.padding(toLength: 20, withPad: " ", startingAt: 0)) \(bar) \(net.signal)dBm  \(net.secured ? "\u{1F512}" : "\u{1F513}")", net.secured ? hackerGreen : hackerRed)
+            }
+        case "scan ports":
+            addOutput("[PORT SCANNER] Scanning 192.168.1.0/24...", hackerCyan)
+            addOutput("  PORT   STATE    SERVICE", hackerAmber)
+            addOutput("  22     open     ssh", hackerGreen)
+            addOutput("  80     open     http", hackerGreen)
+            addOutput("  443    open     https", hackerGreen)
+            addOutput("  3306   closed   mysql", hackerRed)
+            addOutput("  5432   open     postgresql", hackerGreen)
+            addOutput("  8080   open     http-proxy", hackerAmber)
+            addOutput("  8443   filtered https-alt", hackerAmber)
+            addOutput("  9090   open     neural-api", hackerGreen)
+            addOutput("Scan complete: 8 ports checked, 6 open", hackerCyan)
+        case "ifconfig":
+            addOutput("eth0: flags=4163<UP,BROADCAST,RUNNING>", hackerCyan)
+            addOutput("  inet 192.168.1.42  netmask 255.255.255.0", hackerGreen)
+            addOutput("  inet6 fe80::1 prefixlen 64", hackerGreen)
+            addOutput("  ether 00:1A:2B:3C:4D:5E  txqueuelen 1000", hackerDimGreen)
+            addOutput("  RX bytes: \(Int.random(in: 100_000...999_999)) TX bytes: \(Int.random(in: 50_000...500_000))", hackerDimGreen)
+            addOutput("", hackerGreen)
+            addOutput("wlan0: flags=4163<UP,BROADCAST,RUNNING>", hackerCyan)
+            addOutput("  inet 10.0.0.1  netmask 255.255.255.0", hackerGreen)
+            addOutput("  ether AA:BB:CC:DD:EE:FF", hackerDimGreen)
+        case "nmap":
+            addOutput("Starting Nmap 7.94 ( https://nmap.org )", hackerCyan)
+            addOutput("Scanning 192.168.1.0/24 [1000 ports]", hackerGreen)
+            addOutput("Discovered hosts:", hackerAmber)
+            addOutput("  192.168.1.1   \u{2014} Router (Cisco)", hackerGreen)
+            addOutput("  192.168.1.10  \u{2014} iPhone 15 Pro", hackerGreen)
+            addOutput("  192.168.1.15  \u{2014} MacBook Pro M3", hackerGreen)
+            addOutput("  192.168.1.22  \u{2014} Smart TV (LG)", hackerGreen)
+            addOutput("  192.168.1.30  \u{2014} Unknown Device", hackerAmber)
+            addOutput("  192.168.1.42  \u{2014} Neural Ether Server", hackerCyan)
+            addOutput("Nmap done: 256 IPs scanned in 4.2s", hackerDimGreen)
+        case "ps aux":
+            addOutput("USER    PID  %CPU %MEM COMMAND", hackerAmber)
+            addOutput("root    1    0.0  0.1  neural-ether-core", hackerGreen)
+            addOutput("root    42   87.3 12.0 ai-search-engine", hackerGreen)
+            addOutput("root    77   2.1  3.4  photo-editor", hackerGreen)
+            addOutput("root    88   4.5  5.2  video-encoder", hackerGreen)
+            addOutput("root    99   0.3  0.5  firewall-daemon", hackerGreen)
+            addOutput("root    123  1.2  2.1  webcam-stream", hackerGreen)
+            addOutput("root    456  0.8  1.0  wifi-monitor", hackerGreen)
+            addOutput("root    789  0.1  0.2  log-collector", hackerDimGreen)
+        case "netstat":
+            addOutput("Active connections:", hackerCyan)
+            addOutput("Proto  Local           Foreign         State", hackerAmber)
+            addOutput("TCP    0.0.0.0:443     *:*             LISTEN", hackerGreen)
+            addOutput("TCP    192.168.1.42:80 45.33.32.1:443  ESTABLISHED", hackerGreen)
+            addOutput("TCP    10.0.0.1:9090   172.16.0.5:22   ESTABLISHED", hackerGreen)
+            addOutput("UDP    0.0.0.0:5353    *:*             ", hackerDimGreen)
+            addOutput("  \(Int.random(in: 45000...120000)) active connections", hackerAmber)
+        case "cat /etc/keys":
+            addOutput("[ENCRYPTION KEYS]", hackerCyan)
+            addOutput("  RSA-4096:  \(UUID().uuidString)", hackerGreen)
+            addOutput("  AES-512:   \(UUID().uuidString)", hackerGreen)
+            addOutput("  ECDSA:     \(UUID().uuidString.prefix(16))...", hackerGreen)
+            addOutput("  HMAC:      \(UUID().uuidString.prefix(16))...", hackerDimGreen)
+        case "hack":
+            addOutput("[PENETRATION TEST] Initializing...", hackerRed)
+            addOutput("  \u{26A0} Scanning target vulnerabilities...", hackerAmber)
+            addOutput("  [1/5] Port scanning.............. DONE", hackerGreen)
+            addOutput("  [2/5] Service enumeration........ DONE", hackerGreen)
+            addOutput("  [3/5] Vulnerability assessment... DONE", hackerGreen)
+            addOutput("  [4/5] Exploit generation......... DONE", hackerAmber)
+            addOutput("  [5/5] Report generation.......... DONE", hackerGreen)
+            addOutput("", hackerGreen)
+            addOutput("  Vulnerabilities found: 0 critical, 2 medium, 5 low", hackerAmber)
+            addOutput("  System security score: 94/100 (EXCELLENT)", hackerGreen)
+        case "matrix":
+            addOutput("", hackerGreen)
+            for _ in 0..<5 {
+                let matrixRow = (0..<40).map { _ in String("01".randomElement()!) }.joined()
+                addOutput(matrixRow, hackerGreen)
+            }
+            addOutput("", hackerGreen)
+            addOutput("Wake up, Neo...", hackerGreen)
+        case "clear":
+            terminalLines.removeAll()
+        default:
+            if cmd.isEmpty {
+                // do nothing
+            } else {
+                addOutput("bash: \(cmd): command not found", hackerRed)
+                addOutput("Type 'help' for available commands", hackerDimGreen)
+            }
+        }
+
+        logActivity("TERMINAL: \(cmd)")
+    }
+
+    private func addOutput(_ text: String, _ color: Color) {
+        terminalLines.append(TerminalLine(text: text, color: color, isCommand: false))
+    }
+
+    // MARK: - Tab 1: WiFi Scanner
+
+    private var wifiTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("WIFI NETWORK SCANNER", icon: "wifi")
+
+            // Scan button
+            Button { rescanWifi() } label: {
+                HStack(spacing: Spacing.sm) {
+                    if isScanning {
+                        ProgressView().tint(hackerBG).scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.system(size: 14))
+                    }
+                    Text(isScanning ? "SCANNING..." : "$ scan --all-networks")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                }
+                .foregroundColor(hackerBG)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.md)
+                .background(hackerGreen)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+
+            // Network list
+            ForEach(Array(wifiNetworks.enumerated()), id: \.element.id) { _, network in
+                wifiNetworkRow(network: network)
+            }
+        }
+    }
+
+    private func wifiNetworkRow(network: WiFiNetwork) -> some View {
+        VStack(spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: network.signalIcon)
+                    .font(.system(size: 14))
+                    .foregroundColor(network.signalColor)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(network.name)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                    Text("MAC: \(network.mac) | CH: \(network.channel)")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text("\(network.signal) dBm")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(network.signal > -50 ? hackerGreen : hackerAmber)
+                    Text(network.secured ? "\u{1F512} WPA3" : "\u{1F513} OPEN")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(network.secured ? hackerGreen : hackerRed)
+                }
+            }
+
+            // Signal bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color.opacity(0.1))
-                        .frame(height: 6)
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color)
-                        .frame(width: geo.size.width * percent, height: 6)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(hackerGreen.opacity(0.1))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(hackerGreen)
+                        .frame(width: geo.size.width * CGFloat(min(100, 100 + network.signal)) / 100.0)
                 }
             }
-            .frame(height: 6)
+            .frame(height: 4)
+        }
+        .padding(Spacing.md)
+        .background(hackerGreen.opacity(0.03))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.1), lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private func rescanWifi() {
+        isScanning = true
+        logActivity("WIFI_SCAN_STARTED")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            isScanning = false
+            wifiNetworks.shuffle()
+            logActivity("WIFI_SCAN_COMPLETE: \(wifiNetworks.count) networks found")
         }
     }
 
-    private func networkStat(label: String, value: String, icon: String) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundColor(.neuralPrimary.opacity(0.6))
-                .frame(width: 20)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .foregroundColor(.onSurface)
-                Text(label)
-                    .font(.system(size: 7, weight: .medium, design: .monospaced))
-                    .foregroundColor(.onSurfaceVariant.opacity(0.5))
+    // MARK: - Tab 2: Webcam
+
+    private var webcamTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("WEBCAM SURVEILLANCE", icon: "web.camera.fill")
+
+            // Camera selector
+            HStack(spacing: Spacing.sm) {
+                ForEach(Array(cameras.enumerated()), id: \.offset) { index, cam in
+                    Button { selectedCamera = index } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: cam.1).font(.system(size: 10))
+                            Text(cam.0).font(.system(size: 8, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundColor(selectedCamera == index ? hackerBG : hackerGreen.opacity(0.6))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(selectedCamera == index ? hackerGreen : hackerGreen.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            Spacer()
+
+            // Camera feed (simulated)
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.black)
+                    .aspectRatio(16/9, contentMode: .fit)
+                    .overlay(
+                        VStack(spacing: Spacing.md) {
+                            Image(systemName: cameras[selectedCamera].1)
+                                .font(.system(size: 40))
+                                .foregroundColor(hackerGreen.opacity(0.3))
+                            Text("LIVE FEED \u{2014} \(cameras[selectedCamera].0)")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerGreen.opacity(0.6))
+
+                            // Scanline effect
+                            VStack(spacing: 4) {
+                                ForEach(0..<8, id: \.self) { _ in
+                                    Rectangle()
+                                        .fill(hackerGreen.opacity(Double.random(in: 0.02...0.08)))
+                                        .frame(height: 1)
+                                }
+                            }
+                        }
+                    )
+
+                // Recording indicator
+                if isRecording {
+                    VStack {
+                        HStack {
+                            HStack(spacing: 4) {
+                                Circle().fill(hackerRed).frame(width: 8, height: 8)
+                                Text("REC")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundColor(hackerRed)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.black.opacity(0.7))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                            Spacer()
+                        }
+                        .padding(Spacing.sm)
+                        Spacer()
+                    }
+                }
+
+                // Overlay info
+                VStack {
+                    Spacer()
+                    HStack {
+                        Text("ZOOM: \(String(format: "%.1f", cameraZoom))x")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen.opacity(0.6))
+                        Spacer()
+                        Text("1920x1080 @ 30fps")
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(hackerGreen.opacity(0.4))
+                    }
+                    .padding(Spacing.sm)
+                    .background(Color.black.opacity(0.5))
+                }
+            }
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(hackerGreen.opacity(0.2), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            // Zoom slider
+            HStack(spacing: Spacing.md) {
+                Text("ZOOM")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundColor(hackerGreen.opacity(0.6))
+                Slider(value: $cameraZoom, in: 1.0...10.0, step: 0.5)
+                    .tint(hackerGreen)
+                Text("\(String(format: "%.1f", cameraZoom))x")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+                    .frame(width: 36)
+            }
+
+            // Controls
+            HStack(spacing: Spacing.md) {
+                hackerBtn(icon: "camera.fill", label: "CAPTURE") { logActivity("WEBCAM_CAPTURE") }
+                hackerBtn(icon: isRecording ? "stop.fill" : "record.circle", label: isRecording ? "STOP" : "RECORD") {
+                    isRecording.toggle()
+                    logActivity(isRecording ? "WEBCAM_RECORDING_STARTED" : "WEBCAM_RECORDING_STOPPED")
+                }
+                hackerBtn(icon: "arrow.triangle.2.circlepath", label: "SWITCH") {
+                    selectedCamera = (selectedCamera + 1) % cameras.count
+                }
+                hackerBtn(icon: "photo.on.rectangle", label: "GALLERY") { logActivity("WEBCAM_GALLERY_OPENED") }
+            }
         }
-        .padding(Spacing.sm)
-        .background(Color.surfaceBright.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
     }
 
-    private func firewallRow(name: String, status: String, color: Color) -> some View {
+    // MARK: - Tab 3: Network Monitor
+
+    private var networkMonitorTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("NETWORK TRAFFIC MONITOR", icon: "network")
+
+            // Throughput
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(String(format: "%.1f", Double.random(in: 2.5...8.5))) GB/s")
+                        .font(.system(size: 22, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                    Text("THROUGHPUT")
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Int.random(in: 45000...120000))")
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerAmber)
+                    Text("ACTIVE CONN")
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                }
+            }
+            .padding(Spacing.md)
+            .background(hackerGreen.opacity(0.03))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.1), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            // Traffic by region
+            VStack(spacing: Spacing.sm) {
+                hackerTraffic("Europe", Double.random(in: 0.6...0.95))
+                hackerTraffic("Americas", Double.random(in: 0.5...0.85))
+                hackerTraffic("Asia-Pacific", Double.random(in: 0.7...0.98))
+                hackerTraffic("Africa", Double.random(in: 0.2...0.5))
+                hackerTraffic("Middle East", Double.random(in: 0.3...0.6))
+            }
+
+            // Firewall
+            hackerSection("FIREWALL STATUS", icon: "lock.shield")
+            VStack(spacing: Spacing.sm) {
+                firewallRow("DDoS Protection", "ACTIVE", hackerGreen)
+                firewallRow("Rate Limiter", "ACTIVE", hackerGreen)
+                firewallRow("Geo-Blocking", "CONFIGURED", hackerAmber)
+                firewallRow("SSL/TLS", "AES-512", hackerGreen)
+                firewallRow("Intrusion Detection", "MONITORING", hackerCyan)
+            }
+        }
+    }
+
+    private func hackerTraffic(_ region: String, _ percent: Double) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Text(region)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundColor(hackerGreen)
+                .frame(width: 80, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2).fill(hackerGreen.opacity(0.1))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(hackerGreen)
+                        .frame(width: geo.size.width * percent)
+                }
+            }
+            .frame(height: 8)
+            Text("\(Int(percent * 100))%")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(hackerGreen)
+                .frame(width: 30, alignment: .trailing)
+        }
+    }
+
+    private func firewallRow(_ name: String, _ status: String, _ color: Color) -> some View {
         HStack {
-            Circle().fill(color).frame(width: 8, height: 8)
+            Circle().fill(color).frame(width: 6, height: 6)
             Text(name)
-                .font(NeuralFont.monoMedium())
-                .foregroundColor(.onSurface)
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(hackerGreen.opacity(0.8))
             Spacer()
             Text(status)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundColor(color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
                 .background(color.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
+                .clipShape(RoundedRectangle(cornerRadius: 3))
         }
     }
 
-    // MARK: - Tab 2: Device Manager
+    // MARK: - Tab 4: Devices
 
     private var deviceManagerTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("CONNECTED DEVICES", icon: "desktopcomputer")
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("CONNECTED DEVICES", icon: "desktopcomputer")
 
-            InsightCard {
-                VStack(spacing: Spacing.md) {
-                    deviceRow(name: "Creator iPhone 15 Pro", type: "smartphone", status: "ONLINE", ip: "192.168.1.10", lastSeen: "Now")
-                    deviceRow(name: "MacBook Pro M3", type: "laptop", status: "ONLINE", ip: "192.168.1.2", lastSeen: "Now")
-                    deviceRow(name: "iPad Air", type: "tablet", status: "ONLINE", ip: "192.168.1.15", lastSeen: "Now")
-                    deviceRow(name: "Apple Watch Ultra", type: "watch", status: "ONLINE", ip: "192.168.1.22", lastSeen: "2 min ago")
-                    deviceRow(name: "HomePod Mini", type: "speaker", status: "IDLE", ip: "192.168.1.30", lastSeen: "15 min ago")
-                    deviceRow(name: "Apple TV 4K", type: "tv", status: "OFFLINE", ip: "192.168.1.40", lastSeen: "2 hours ago")
-                }
-            }
-
-            InsightCard(title: "DEVICE STATISTICS") {
-                VStack(spacing: Spacing.md) {
-                    HStack {
-                        Text("Total Devices")
-                            .font(NeuralFont.monoMedium())
-                            .foregroundColor(.onSurface)
-                        Spacer()
-                        Text("6")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralPrimary)
-                    }
-                    HStack {
-                        Text("Online")
-                            .font(NeuralFont.monoMedium())
-                            .foregroundColor(.onSurface)
-                        Spacer()
-                        Text("4")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralSuccess)
-                    }
-                    HStack {
-                        Text("Idle")
-                            .font(NeuralFont.monoMedium())
-                            .foregroundColor(.onSurface)
-                        Spacer()
-                        Text("1")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralWarning)
-                    }
-                    HStack {
-                        Text("Offline")
-                            .font(NeuralFont.monoMedium())
-                            .foregroundColor(.onSurface)
-                        Spacer()
-                        Text("1")
-                            .font(.system(size: 14, weight: .bold, design: .monospaced))
-                            .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                    }
-                }
+            VStack(spacing: Spacing.sm) {
+                hackerDevice("Creator iPhone 15 Pro", "iphone", "192.168.1.10", "ONLINE", hackerGreen)
+                hackerDevice("MacBook Pro M3", "laptopcomputer", "192.168.1.15", "ONLINE", hackerGreen)
+                hackerDevice("iPad Pro 12.9", "ipad", "192.168.1.20", "ONLINE", hackerGreen)
+                hackerDevice("Smart TV LG 4K", "tv", "192.168.1.22", "IDLE", hackerAmber)
+                hackerDevice("Apple Watch Ultra", "applewatch", "BT-PAIRED", "SYNCED", hackerCyan)
+                hackerDevice("HomePod Mini", "hifispeaker", "192.168.1.30", "STANDBY", hackerDimGreen)
+                hackerDevice("Unknown Device", "questionmark.circle", "192.168.1.99", "BLOCKED", hackerRed)
             }
         }
     }
 
-    private func deviceRow(name: String, type: String, status: String, ip: String, lastSeen: String) -> some View {
-        let icon: String = {
-            switch type {
-            case "smartphone": return "iphone"
-            case "laptop": return "laptopcomputer"
-            case "tablet": return "ipad"
-            case "watch": return "applewatch"
-            case "speaker": return "homepodmini"
-            case "tv": return "appletv"
-            default: return "desktopcomputer"
-            }
-        }()
-        let color: Color = status == "ONLINE" ? .neuralSuccess : status == "IDLE" ? .neuralWarning : .onSurfaceVariant.opacity(0.4)
-
-        return HStack(spacing: Spacing.md) {
+    private func hackerDevice(_ name: String, _ icon: String, _ ip: String, _ status: String, _ color: Color) -> some View {
+        HStack(spacing: Spacing.md) {
             Image(systemName: icon)
-                .font(.system(size: 18))
+                .font(.system(size: 16))
                 .foregroundColor(color)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 1) {
                 Text(name)
-                    .font(NeuralFont.monoMedium())
-                    .foregroundColor(.onSurface)
-                HStack(spacing: Spacing.sm) {
-                    Text(ip)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                    Text(lastSeen)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                }
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+                Text(ip)
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(hackerDimGreen)
             }
             Spacer()
             Text(status)
                 .font(.system(size: 8, weight: .bold, design: .monospaced))
                 .foregroundColor(color)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
                 .background(color.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
+                .clipShape(RoundedRectangle(cornerRadius: 3))
         }
-        .padding(.vertical, Spacing.xs)
+        .padding(Spacing.sm)
+        .background(hackerGreen.opacity(0.02))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.08), lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
-    // MARK: - Tab 3: Content Filter
+    // MARK: - Tab 5: Exploit Tools
 
-    private var contentFilterTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("CONTENT FILTER ENGINE", icon: "line.3.horizontal.decrease.circle")
+    private var exploitToolsTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("EXPLOIT & SECURITY TOOLS", icon: "lock.shield")
 
-            InsightCard {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    Text("Configure what content is visible to users across all modules.")
-                        .font(NeuralFont.bodyMedium())
-                        .foregroundColor(.onSurfaceVariant)
-
-                    filterRow(name: "Violence", level: "BLOCKED", color: .neuralError)
-                    filterRow(name: "Adult Content (+18)", level: orchestrator.adultContentEnabled ? "ALLOWED" : "BLOCKED", color: orchestrator.adultContentEnabled ? .neuralSuccess : .neuralError)
-                    filterRow(name: "Gambling", level: "BLOCKED", color: .neuralError)
-                    filterRow(name: "Drugs", level: "BLOCKED", color: .neuralError)
-                    filterRow(name: "Hate Speech", level: "BLOCKED", color: .neuralError)
-                    filterRow(name: "Spam", level: "FILTERED", color: .neuralWarning)
-                    filterRow(name: "Political", level: "ALLOWED", color: .neuralSuccess)
-                    filterRow(name: "Religious", level: "ALLOWED", color: .neuralSuccess)
-                    filterRow(name: "News", level: "ALLOWED", color: .neuralSuccess)
-                    filterRow(name: "Social Media", level: "ALLOWED", color: .neuralSuccess)
-
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 12))
-                        Text("As creator, you control all content filters for all users.")
-                            .font(.system(size: 10, design: .monospaced))
-                    }
-                    .foregroundColor(.neuralWarning.opacity(0.8))
-                    .padding(Spacing.md)
-                    .background(Color.neuralWarning.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-                }
-            }
-        }
-    }
-
-    private func filterRow(name: String, level: String, color: Color) -> some View {
-        HStack {
-            Circle().fill(color).frame(width: 8, height: 8)
-            Text(name)
-                .font(NeuralFont.monoMedium())
-                .foregroundColor(.onSurface)
-            Spacer()
-            Text(level)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(color)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 3)
-                .background(color.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
-        }
-    }
-
-    // MARK: - Tab 4: System Override
-
-    private var systemOverrideTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("SYSTEM OVERRIDE CONTROLS", icon: "gearshape.2.fill")
-
-            InsightCard {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.neuralError)
-                        Text("DANGER ZONE \u{2014} Creator-only system overrides")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralError)
-                    }
-
-                    overrideRow(name: "Force Sync All Nodes", description: "Re-sync all \(orchestrator.activeNodes) nodes immediately", icon: "arrow.triangle.2.circlepath", color: .neuralPrimary)
-                    overrideRow(name: "Clear All Caches", description: "Purge cached data across 47 data centers", icon: "trash", color: .neuralWarning)
-                    overrideRow(name: "Reset User Sessions", description: "Force logout all connected users", icon: "person.crop.circle.badge.xmark", color: .neuralError)
-                    overrideRow(name: "Emergency Shutdown", description: "Panic protocol \u{2014} shut down all services", icon: "power", color: .neuralError)
-                    overrideRow(name: "Rebuild Search Index", description: "Re-index all 12M+ sources from scratch", icon: "magnifyingglass", color: .neuralTertiary)
-                    overrideRow(name: "Rotate Encryption Keys", description: "Generate new AES-512 keys for all traffic", icon: "key.fill", color: .neuralWarning)
-                }
-            }
-
-            InsightCard(title: "SYSTEM PERFORMANCE") {
-                VStack(spacing: Spacing.md) {
-                    performanceRow(name: "CPU Usage", value: "\(Int.random(in: 15...45))%", color: .neuralPrimary)
-                    performanceRow(name: "Memory", value: "\(Int.random(in: 40...75))%", color: .neuralTertiary)
-                    performanceRow(name: "Storage", value: "\(Int.random(in: 30...60))%", color: .neuralWarning)
-                    performanceRow(name: "GPU Cluster", value: "\(Int.random(in: 20...55))%", color: .neuralSuccess)
-                    performanceRow(name: "Network I/O", value: "\(Int.random(in: 50...85))%", color: .neuralPrimary)
-                }
-            }
-        }
-    }
-
-    private func overrideRow(name: String, description: String, icon: String, color: Color) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(color)
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(NeuralFont.monoMedium())
-                    .foregroundColor(.onSurface)
-                Text(description)
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(hackerAmber)
+                Text("For authorized security testing only")
                     .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.onSurfaceVariant.opacity(0.6))
+                    .foregroundColor(hackerAmber.opacity(0.7))
             }
-            Spacer()
-            Button {} label: {
-                Text("EXECUTE")
+
+            VStack(spacing: Spacing.sm) {
+                exploitTool("PORT SCANNER", "network", "Scan target for open ports", hackerGreen)
+                exploitTool("PACKET SNIFFER", "antenna.radiowaves.left.and.right", "Capture network packets", hackerCyan)
+                exploitTool("SQL INJECTION TEST", "syringe", "Test SQL injection vulnerabilities", hackerAmber)
+                exploitTool("XSS SCANNER", "chevron.left.forwardslash.chevron.right", "Cross-site scripting test", hackerAmber)
+                exploitTool("BRUTE FORCE", "key.fill", "Password strength tester", hackerRed)
+                exploitTool("WIFI DEAUTH", "wifi.slash", "WiFi deauthentication test", hackerRed)
+                exploitTool("DNS SPOOF DETECT", "globe", "Detect DNS spoofing attacks", hackerGreen)
+                exploitTool("KEYLOGGER DETECT", "keyboard", "Detect keyloggers on system", hackerGreen)
+                exploitTool("ROOTKIT SCANNER", "shield.lefthalf.filled", "Deep scan for rootkits", hackerCyan)
+                exploitTool("PHISHING DETECTOR", "envelope.open", "Detect phishing attempts", hackerGreen)
+            }
+        }
+    }
+
+    private func exploitTool(_ name: String, _ icon: String, _ desc: String, _ color: Color) -> some View {
+        Button { logActivity("EXPLOIT_RUN: \(name)") } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(color)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                    Text(desc)
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                }
+                Spacer()
+                Text("RUN")
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
                     .foregroundColor(color)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(color.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.full)
-                            .stroke(color.opacity(0.2), lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, Spacing.xs)
-    }
-
-    private func performanceRow(name: String, value: String, color: Color) -> some View {
-        HStack {
-            Text(name)
-                .font(NeuralFont.monoMedium())
-                .foregroundColor(.onSurface)
-            Spacer()
-            Text(value)
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .foregroundColor(color)
-        }
-    }
-
-    // MARK: - Tab 5: Activity Log
-
-    private var activityLogTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("CREATOR ACTIVITY LOG", icon: "list.bullet.rectangle")
-
-            InsightCard {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    HStack {
-                        Text("Recent Actions")
-                            .font(NeuralFont.headlineSmall())
-                            .foregroundColor(.onSurface)
-                        Spacer()
-                        Text("\(activityLog.count) entries")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                    }
-
-                    ForEach(activityLog) { entry in
-                        HStack(alignment: .top, spacing: Spacing.md) {
-                            Circle()
-                                .fill(entry.color)
-                                .frame(width: 8, height: 8)
-                                .padding(.top, 4)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.action)
-                                    .font(NeuralFont.monoMedium())
-                                    .foregroundColor(.onSurface)
-                                Text(entry.timestamp)
-                                    .font(.system(size: 9, design: .monospaced))
-                                    .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                            }
-                            Spacer()
-                            Text(entry.module)
-                                .font(.system(size: 8, weight: .medium, design: .monospaced))
-                                .foregroundColor(entry.color.opacity(0.8))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(entry.color.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - +18 Adult Content Panel
-
-    private var adultContentPanel: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("+18 CONTENT \u{2014} UNLOCKED", icon: "exclamationmark.shield.fill")
-
-            InsightCard {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    HStack(spacing: Spacing.md) {
-                        Image(systemName: "exclamationmark.shield.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.neuralError)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("ADULT CONTENT ACTIVE")
-                                .font(NeuralFont.headlineSmall())
-                                .foregroundColor(.neuralError)
-                            Text("Age-restricted content visible across all modules.")
-                                .font(NeuralFont.bodySmall())
-                                .foregroundColor(.onSurfaceVariant)
-                        }
-                    }
-
-                    VStack(spacing: Spacing.md) {
-                        adultCategory(name: "MATURE_MEDIA", count: 2_847, status: "UNLOCKED")
-                        adultCategory(name: "RESTRICTED_CHANNELS", count: 156, status: "UNLOCKED")
-                        adultCategory(name: "NSFW_FORGE_TEMPLATES", count: 89, status: "UNLOCKED")
-                        adultCategory(name: "AGE_VERIFIED_MODULES", count: 34, status: "UNLOCKED")
-                    }
-
-                    HStack(spacing: Spacing.sm) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.neuralWarning)
-                        Text("Creator responsibility: You control what users see.")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.neuralWarning.opacity(0.8))
-                    }
-                    .padding(Spacing.md)
-                    .background(Color.neuralWarning.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-                }
-            }
-        }
-    }
-
-    private func adultCategory(name: String, count: Int, status: String) -> some View {
-        HStack {
-            Circle().fill(Color.neuralError).frame(width: 8, height: 8)
-            Text(name)
-                .font(NeuralFont.monoMedium())
-                .foregroundColor(.onSurface)
-            Spacer()
-            Text("\(count) items")
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.onSurfaceVariant.opacity(0.6))
-            Text(status)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(.neuralSuccess)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Color.neuralSuccess.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
-        }
-    }
-
-    // MARK: - WiFi Scanner Panel
-
-    private var wifiScannerPanel: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("WIFI SCANNER \u{2014} ACTIVE", icon: "wifi")
-
-            InsightCard {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    HStack(spacing: Spacing.md) {
-                        Image(systemName: "wifi")
-                            .font(.system(size: 20))
-                            .foregroundColor(.neuralPrimary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("NETWORK SCANNER")
-                                .font(NeuralFont.headlineSmall())
-                                .foregroundColor(.neuralPrimary)
-                            Text("\(wifiNetworks.count) networks detected")
-                                .font(NeuralFont.bodySmall())
-                                .foregroundColor(.onSurfaceVariant)
-                        }
-                        Spacer()
-                        Button { rescanWifi() } label: {
-                            HStack(spacing: 4) {
-                                if isScanning {
-                                    ProgressView().scaleEffect(0.6).tint(.neuralPrimary)
-                                } else {
-                                    Image(systemName: "arrow.clockwise").font(.system(size: 12))
-                                }
-                                Text(isScanning ? "SCANNING" : "RESCAN")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            }
-                            .foregroundColor(.neuralPrimary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.neuralPrimary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isScanning)
-                    }
-
-                    ForEach(wifiNetworks) { network in
-                        wifiNetworkRow(network)
-                    }
-                }
-            }
-        }
-    }
-
-    private func wifiNetworkRow(_ network: WiFiNetwork) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: network.signalIcon)
-                .font(.system(size: 16))
-                .foregroundColor(network.signalColor)
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: Spacing.sm) {
-                    Text(network.name)
-                        .font(NeuralFont.monoMedium())
-                        .foregroundColor(.onSurface)
-                    if network.isSecured {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 9))
-                            .foregroundColor(.onSurfaceVariant.opacity(0.5))
-                    }
-                }
-                HStack(spacing: Spacing.sm) {
-                    Text(network.frequency).font(.system(size: 9, design: .monospaced)).foregroundColor(.onSurfaceVariant.opacity(0.5))
-                    Text("CH \(network.channel)").font(.system(size: 9, design: .monospaced)).foregroundColor(.onSurfaceVariant.opacity(0.5))
-                    Text(network.encryption).font(.system(size: 9, design: .monospaced)).foregroundColor(.onSurfaceVariant.opacity(0.5))
-                }
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(network.signalStrength) dBm")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(network.signalColor)
-                Text(network.speed).font(.system(size: 9, design: .monospaced)).foregroundColor(.onSurfaceVariant.opacity(0.5))
-            }
-            Button {} label: {
-                Text(network.isConnected ? "CONNECTED" : "CONNECT")
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(network.isConnected ? .neuralSuccess : .neuralPrimary)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background((network.isConnected ? Color.neuralSuccess : Color.neuralPrimary).opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.full))
+                    .padding(.vertical, 3)
+                    .background(color.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
             }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, Spacing.sm)
-    }
-
-    private func rescanWifi() {
-        isScanning = true
-        logActivity("WiFi rescan initiated", module: "WIFI", color: .neuralPrimary)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            wifiNetworks = WiFiNetwork.mockNetworks.shuffled()
-            for i in wifiNetworks.indices {
-                wifiNetworks[i].signalStrength += Int.random(in: -5...5)
-            }
-            isScanning = false
-        }
-    }
-
-    // MARK: - Webcam Feed Panel
-
-    private var webcamFeedPanel: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sectionHeader("WEBCAM FEED \u{2014} ACTIVE", icon: "web.camera.fill")
-
-            InsightCard {
-                VStack(spacing: Spacing.lg) {
-                    HStack(spacing: Spacing.md) {
-                        Image(systemName: "web.camera.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.neuralTertiary)
-                        Text("CAMERA FEED")
-                            .font(NeuralFont.headlineSmall())
-                            .foregroundColor(.neuralTertiary)
-                        Spacer()
-                        if isRecording {
-                            HStack(spacing: 4) {
-                                Circle().fill(Color.neuralError).frame(width: 8, height: 8)
-                                Text("REC")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.neuralError)
-                            }
-                        }
-                    }
-
-                    // Camera tabs
-                    HStack(spacing: 0) {
-                        ForEach(Array(cameras.enumerated()), id: \.offset) { index, camera in
-                            Button { selectedCamera = index } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: camera.1).font(.system(size: 10))
-                                    Text(camera.0).font(.system(size: 10, weight: .medium))
-                                }
-                                .foregroundColor(selectedCamera == index ? .neuralTertiary : .onSurfaceVariant.opacity(0.5))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(selectedCamera == index ? Color.neuralTertiary.opacity(0.1) : Color.clear)
-                                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    // Camera preview
-                    ZStack {
-                        RoundedRectangle(cornerRadius: CornerRadius.lg)
-                            .fill(Color.black)
-                            .frame(height: 220)
-                            .overlay(
-                                VStack(spacing: 0) {
-                                    ForEach(0..<3, id: \.self) { _ in
-                                        HStack(spacing: 0) {
-                                            ForEach(0..<3, id: \.self) { _ in
-                                                Rectangle().stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                                            }
-                                        }
-                                    }
-                                }
-                            )
-                            .overlay(
-                                VStack {
-                                    HStack {
-                                        Text(cameras[selectedCamera].0.uppercased())
-                                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                            .foregroundColor(.neuralTertiary)
-                                            .padding(.horizontal, 8).padding(.vertical, 4)
-                                            .background(Color.black.opacity(0.6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                                        Spacer()
-                                        Text("1080p 30fps")
-                                            .font(.system(size: 9, design: .monospaced))
-                                            .foregroundColor(.white.opacity(0.6))
-                                            .padding(.horizontal, 8).padding(.vertical, 4)
-                                            .background(Color.black.opacity(0.6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                                    }
-                                    Spacer()
-                                    HStack {
-                                        Text("ZOOM: \(String(format: "%.1f", cameraZoom))x")
-                                            .font(.system(size: 9, design: .monospaced))
-                                            .foregroundColor(.white.opacity(0.6))
-                                            .padding(.horizontal, 8).padding(.vertical, 4)
-                                            .background(Color.black.opacity(0.6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                                        Spacer()
-                                    }
-                                }
-                                .padding(Spacing.md)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
-
-                        Image(systemName: cameras[selectedCamera].1)
-                            .font(.system(size: 40))
-                            .foregroundColor(.white.opacity(0.15))
-                    }
-
-                    // Zoom slider
-                    HStack(spacing: Spacing.md) {
-                        Text("ZOOM").font(.system(size: 9, weight: .medium, design: .monospaced)).foregroundColor(.onSurfaceVariant.opacity(0.5))
-                        Slider(value: $cameraZoom, in: 1.0...10.0, step: 0.5).tint(.neuralTertiary)
-                        Text("\(String(format: "%.1f", cameraZoom))x")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundColor(.neuralTertiary)
-                            .frame(width: 36)
-                    }
-
-                    // Controls
-                    HStack(spacing: Spacing.lg) {
-                        cameraButton(icon: "camera", label: "CAPTURE") {
-                            logActivity("Photo captured from \(cameras[selectedCamera].0)", module: "WEBCAM", color: .neuralTertiary)
-                        }
-                        cameraButton(icon: isRecording ? "stop.circle.fill" : "record.circle", label: isRecording ? "STOP" : "RECORD") {
-                            isRecording.toggle()
-                            logActivity(isRecording ? "Recording started" : "Recording stopped", module: "WEBCAM", color: .neuralTertiary)
-                        }
-                        cameraButton(icon: "arrow.triangle.2.circlepath", label: "SWITCH") {
-                            selectedCamera = (selectedCamera + 1) % cameras.count
-                        }
-                        cameraButton(icon: "gearshape", label: "SETTINGS") {}
-                    }
-                }
-            }
-        }
-    }
-
-    private func cameraButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(.neuralTertiary)
-                Text(label)
-                    .font(.system(size: 8, weight: .medium, design: .monospaced))
-                    .foregroundColor(.onSurfaceVariant.opacity(0.6))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.md)
-            .background(Color.neuralTertiary.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
+            .padding(Spacing.sm)
+            .background(hackerGreen.opacity(0.02))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.08), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - Permissions
+    // MARK: - Tab 6: File System
 
-    private var permissionsSection: some View {
-        InsightCard(title: "CREATOR PERMISSIONS") {
-            VStack(spacing: Spacing.md) {
-                permissionRow(name: "Full System Access", status: true)
-                permissionRow(name: "User Management", status: true)
-                permissionRow(name: "Content Moderation", status: true)
-                permissionRow(name: "Deploy Controls", status: true)
-                permissionRow(name: "Security Override", status: true)
-                permissionRow(name: "Data Export", status: true)
-                permissionRow(name: "API Keys", status: true)
-                permissionRow(name: "Billing", status: true)
+    private var fileSystemTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("FILE SYSTEM EXPLORER", icon: "folder.fill")
+
+            Text("root@neural-ether:/$ ls -la")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(hackerGreen)
+
+            VStack(alignment: .leading, spacing: 4) {
+                fsRow("drwxr-xr-x", "root", "4096", "/etc", "folder.fill", hackerCyan)
+                fsRow("drwxr-xr-x", "root", "12288", "/var/log", "folder.fill", hackerCyan)
+                fsRow("-rw-r--r--", "root", "2048", "/etc/neural.conf", "doc.text", hackerGreen)
+                fsRow("-rw-------", "root", "512", "/etc/keys/master.key", "key.fill", hackerAmber)
+                fsRow("drwx------", "root", "8192", "/data/users", "folder.fill.badge.person.crop", hackerCyan)
+                fsRow("-rw-r--r--", "root", "1.2GB", "/data/ai-model.bin", "brain", hackerGreen)
+                fsRow("-rw-r--r--", "root", "256MB", "/data/search-index.db", "cylinder", hackerGreen)
+                fsRow("drwxr-xr-x", "root", "4096", "/var/www", "globe", hackerCyan)
+                fsRow("-rwx------", "root", "2048", "/usr/bin/neural-core", "terminal", hackerAmber)
+                fsRow("lrwxrwxrwx", "root", "24", "/tmp -> /dev/null", "link", hackerDimGreen)
             }
+            .padding(Spacing.md)
+            .background(hackerBG)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.2), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
         }
     }
 
-    // MARK: - Session Info
-
-    private var sessionInfoSection: some View {
-        InsightCard(title: "SESSION INFO") {
-            VStack(spacing: Spacing.md) {
-                infoRow(key: "Session ID", value: "NE-\(UUID().uuidString.prefix(8))")
-                infoRow(key: "Access Level", value: "SOVEREIGN (100%)")
-                infoRow(key: "Active Since", value: {
-                    let f = DateFormatter()
-                    f.dateFormat = "HH:mm:ss"
-                    return f.string(from: Date())
-                }())
-                infoRow(key: "Connected Nodes", value: "\(orchestrator.activeNodes)")
-                infoRow(key: "Data Centers", value: "47")
-                infoRow(key: "Encryption", value: "AES-512")
-            }
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func sectionHeader(_ text: String, icon: String = "") -> some View {
+    private func fsRow(_ perms: String, _ owner: String, _ size: String, _ path: String, _ icon: String, _ color: Color) -> some View {
         HStack(spacing: Spacing.sm) {
-            if !icon.isEmpty {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundColor(.neuralWarning)
-            }
-            Text(text)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(.onSurfaceVariant.opacity(0.6))
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(color)
+                .frame(width: 16)
+            Text(perms)
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(hackerDimGreen)
+                .frame(width: 80, alignment: .leading)
+            Text(size)
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(hackerDimGreen)
+                .frame(width: 50, alignment: .trailing)
+            Text(path)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundColor(color)
+            Spacer()
         }
     }
 
-    private func creatorToggle(icon: String, title: String, subtitle: String, isOn: Binding<Bool>, accentColor: Color) -> some View {
-        HStack(spacing: Spacing.md) {
-            ZStack {
-                RoundedRectangle(cornerRadius: CornerRadius.md)
-                    .fill(accentColor.opacity(isOn.wrappedValue ? 0.15 : 0.06))
-                    .frame(width: 40, height: 40)
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(isOn.wrappedValue ? accentColor : .onSurfaceVariant.opacity(0.4))
-            }
+    // MARK: - Tab 7: +18 Content
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .foregroundColor(isOn.wrappedValue ? accentColor : .onSurface)
-                Text(subtitle)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.onSurfaceVariant.opacity(0.6))
-            }
+    private var adultContentTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("+18 ADULT CONTENT CONTROL", icon: "eye.fill")
 
+            // Master toggle
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("+18 CONTENT FILTER")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                    Text(orchestrator.adultContentEnabled ? "UNLOCKED \u{2014} Age-restricted content visible" : "LOCKED \u{2014} Content filtered")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(orchestrator.adultContentEnabled ? hackerAmber : hackerDimGreen)
+                }
+                Spacer()
+                Toggle("", isOn: $orchestrator.adultContentEnabled)
+                    .toggleStyle(HackerToggleStyle())
+                    .labelsHidden()
+            }
+            .padding(Spacing.md)
+            .background(hackerGreen.opacity(0.03))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.1), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+
+            if orchestrator.adultContentEnabled {
+                VStack(spacing: Spacing.sm) {
+                    adultCat("Movies & Shows", 12847, hackerAmber)
+                    adultCat("Streaming Live", 342, hackerRed)
+                    adultCat("Premium Content", 8923, hackerCyan)
+                    adultCat("VR Experience", 1456, hackerGreen)
+                }
+            }
+        }
+    }
+
+    private func adultCat(_ name: String, _ count: Int, _ color: Color) -> some View {
+        HStack {
+            Text(name)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(hackerGreen)
             Spacer()
+            Text("\(count) items")
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(color)
+        }
+        .padding(Spacing.sm)
+        .background(color.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+    }
 
+    // MARK: - Tab 8: System Override
+
+    private var systemOverrideTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            hackerSection("SYSTEM OVERRIDE", icon: "gearshape.2.fill")
+
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12)).foregroundColor(hackerRed)
+                Text("DANGER ZONE \u{2014} Use with caution")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerRed)
+            }
+
+            VStack(spacing: Spacing.sm) {
+                overrideToggle("BYPASS RATE LIMITER", $orchestrator.wifiAccessEnabled, hackerAmber)
+                overrideToggle("FORCE ADMIN MODE", .constant(true), hackerGreen)
+                overrideToggle("DISABLE FIREWALL", .constant(false), hackerRed)
+                overrideToggle("RAW API ACCESS", $orchestrator.webcamAccessEnabled, hackerCyan)
+                overrideToggle("DEBUG MODE", .constant(true), hackerAmber)
+                overrideToggle("STEALTH MODE", .constant(false), hackerDimGreen)
+            }
+
+            // Performance
+            hackerSection("SYSTEM PERFORMANCE", icon: "gauge.with.dots.needle.67percent")
+            VStack(spacing: Spacing.sm) {
+                perfBar("CPU USAGE", 0.87, hackerGreen)
+                perfBar("MEMORY", 0.72, hackerCyan)
+                perfBar("DISK I/O", 0.45, hackerAmber)
+                perfBar("GPU", 0.93, hackerGreen)
+                perfBar("NETWORK", 0.68, hackerCyan)
+            }
+        }
+    }
+
+    private func overrideToggle(_ label: String, _ isOn: Binding<Bool>, _ color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(hackerGreen)
+            Spacer()
             Toggle("", isOn: isOn)
-                .toggleStyle(NeuralToggleStyle(accentColor: accentColor))
+                .toggleStyle(HackerToggleStyle())
                 .labelsHidden()
         }
-        .padding(Spacing.md)
-        .background(
-            isOn.wrappedValue ? accentColor.opacity(0.04) : Color.surfaceContainerLow
-        )
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadius.lg)
-                .stroke(isOn.wrappedValue ? accentColor.opacity(0.2) : Color.clear, lineWidth: 1)
-        )
-        .onChange(of: isOn.wrappedValue) { _, newValue in
-            logActivity("\(title) \(newValue ? "enabled" : "disabled")", module: "CONTROLS", color: accentColor)
-        }
+        .padding(Spacing.sm)
+        .background(color.opacity(0.03))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(color.opacity(0.08), lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
-    private func permissionRow(name: String, status: Bool) -> some View {
-        HStack {
-            Image(systemName: status ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 14))
-                .foregroundColor(status ? .neuralSuccess : .neuralError)
-            Text(name)
-                .font(NeuralFont.monoMedium())
-                .foregroundColor(.onSurface)
-            Spacer()
-            Text(status ? "GRANTED" : "DENIED")
+    private func perfBar(_ label: String, _ value: Double, _ color: Color) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Text(label)
+                .font(.system(size: 8, weight: .medium, design: .monospaced))
+                .foregroundColor(hackerGreen.opacity(0.7))
+                .frame(width: 70, alignment: .leading)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2).fill(color.opacity(0.1))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(color)
+                        .frame(width: geo.size.width * value)
+                }
+            }
+            .frame(height: 8)
+            Text("\(Int(value * 100))%")
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(status ? .neuralSuccess : .neuralError)
+                .foregroundColor(color)
+                .frame(width: 30, alignment: .trailing)
         }
     }
 
-    private func infoRow(key: String, value: String) -> some View {
-        HStack {
-            Text(key)
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(.onSurfaceVariant.opacity(0.6))
-            Spacer()
-            Text(value)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundColor(.onSurface)
+    // MARK: - Tab 9: Activity Log
+
+    private var activityLogTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            HStack {
+                hackerSection("ACTIVITY LOG", icon: "list.bullet.rectangle")
+                Spacer()
+                Button {
+                    activityLog.removeAll()
+                    logActivity("LOG_CLEARED")
+                } label: {
+                    Text("CLEAR")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(hackerRed)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(hackerRed.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+            }
+
+            ForEach(Array(activityLog.enumerated()), id: \.element.id) { _, entry in
+                HStack(alignment: .top, spacing: Spacing.sm) {
+                    Text(entry.time)
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                        .frame(width: 55, alignment: .leading)
+                    Circle().fill(entry.color).frame(width: 5, height: 5).padding(.top, 4)
+                    Text(entry.message)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(entry.color)
+                }
+            }
         }
     }
 
-    // MARK: - Auth Logic
+    // MARK: - Shared Components
+
+    private func hackerSection(_ title: String, icon: String) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(hackerGreen)
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(hackerGreen)
+        }
+    }
+
+    private func hackerBtn(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(hackerGreen)
+                Text(label)
+                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen.opacity(0.6))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.md)
+            .background(hackerGreen.opacity(0.05))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.15), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Auth
 
     private func authenticateCreator() {
-        let code = accessCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        if code == "test123" {
+        if accessCode == "test123" {
             withAnimation(.easeInOut(duration: 0.3)) {
                 authAnimating = true
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                withAnimation(.easeInOut(duration: 0.4)) {
+                withAnimation {
                     isAuthenticated = true
                     showAccessDenied = false
+                    matrixTimer?.invalidate()
                 }
-                logActivity("Creator authenticated successfully", module: "AUTH", color: .neuralSuccess)
+                logActivity("AUTH_SUCCESS \u{2014} Creator access granted")
+                orchestrator.systemLogs.insert(
+                    LogEntry(timestamp: Date(), level: .info, module: "CREATOR",
+                             message: "AUTHENTICATION_SUCCESS \u{2014} Sovereign access granted."),
+                    at: 0
+                )
             }
         } else {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                showAccessDenied = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation { showAccessDenied = true }
+            logActivity("AUTH_FAILED \u{2014} Invalid code attempt")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 withAnimation { showAccessDenied = false }
             }
         }
     }
 
-    // MARK: - Activity Logging
-
-    private func logActivity(_ action: String, module: String, color: Color) {
+    private func logActivity(_ message: String) {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         let entry = ActivityEntry(
-            action: action,
-            module: module,
-            timestamp: formatter.string(from: Date()),
-            color: color
+            time: formatter.string(from: Date()),
+            message: message,
+            color: message.contains("FAILED") || message.contains("DENIED") ? hackerRed :
+                   message.contains("WARNING") ? hackerAmber : hackerGreen
         )
         activityLog.insert(entry, at: 0)
-        if activityLog.count > 50 { activityLog.removeLast() }
     }
 }
 
-// MARK: - Activity Entry Model
+// MARK: - Models
+
+struct TerminalLine: Identifiable {
+    let id = UUID()
+    let text: String
+    let color: Color
+    let isCommand: Bool
+}
+
+struct MatrixColumn: Identifiable {
+    let id = UUID()
+    let char: String
+    let x: CGFloat
+    let y: CGFloat
+    let opacity: Double
+}
 
 struct ActivityEntry: Identifiable {
     let id = UUID()
-    let action: String
-    let module: String
-    let timestamp: String
-    let color: Color
+    let time: String
+    let message: String
+    var color: Color = Color(hex: "#00FF41")
 
     static let initial: [ActivityEntry] = [
-        ActivityEntry(action: "Creator panel loaded", module: "SYSTEM", timestamp: "00:00:00", color: .neuralPrimary),
-        ActivityEntry(action: "Security scan complete", module: "SECURITY", timestamp: "00:00:00", color: .neuralSuccess),
-        ActivityEntry(action: "All nodes synchronized", module: "NETWORK", timestamp: "00:00:00", color: .neuralTertiary),
+        ActivityEntry(time: "00:00:00", message: "SYSTEM_BOOT \u{2014} Neural Ether OS initialized"),
+        ActivityEntry(time: "00:00:01", message: "FIREWALL_ACTIVE \u{2014} All ports secured"),
+        ActivityEntry(time: "00:00:02", message: "AI_ENGINE_READY \u{2014} Search engine online"),
+        ActivityEntry(time: "00:00:03", message: "MODULES_LOADED \u{2014} 10 modules active"),
     ]
 }
-
-// MARK: - WiFi Network Model
 
 struct WiFiNetwork: Identifiable {
     let id = UUID()
     let name: String
-    var signalStrength: Int
-    let frequency: String
+    let signal: Int
+    let secured: Bool
+    let mac: String
     let channel: Int
-    let encryption: String
-    let speed: String
-    let isSecured: Bool
-    let isConnected: Bool
 
     var signalIcon: String {
-        if signalStrength > -50 { return "wifi" }
-        if signalStrength > -70 { return "wifi" }
+        if signal > -30 { return "wifi" }
+        if signal > -50 { return "wifi" }
+        if signal > -70 { return "wifi" }
         return "wifi.exclamationmark"
     }
 
     var signalColor: Color {
-        if signalStrength > -50 { return .neuralSuccess }
-        if signalStrength > -70 { return .neuralWarning }
-        return .neuralError
+        if signal > -50 { return Color(hex: "#00FF41") }
+        if signal > -70 { return Color(hex: "#FFB000") }
+        return Color(hex: "#FF0033")
     }
 
     static let mockNetworks: [WiFiNetwork] = [
-        WiFiNetwork(name: "NeuralEther_5G", signalStrength: -32, frequency: "5 GHz", channel: 36, encryption: "WPA3", speed: "1200 Mbps", isSecured: true, isConnected: true),
-        WiFiNetwork(name: "CREATOR_NET", signalStrength: -45, frequency: "5 GHz", channel: 44, encryption: "WPA3", speed: "867 Mbps", isSecured: true, isConnected: false),
-        WiFiNetwork(name: "EdgeNode_EU", signalStrength: -55, frequency: "2.4 GHz", channel: 6, encryption: "WPA2", speed: "300 Mbps", isSecured: true, isConnected: false),
-        WiFiNetwork(name: "DataCenter_US", signalStrength: -48, frequency: "5 GHz", channel: 149, encryption: "WPA3", speed: "1200 Mbps", isSecured: true, isConnected: false),
-        WiFiNetwork(name: "Guest_Network", signalStrength: -72, frequency: "2.4 GHz", channel: 11, encryption: "WPA2", speed: "150 Mbps", isSecured: true, isConnected: false),
-        WiFiNetwork(name: "IoT_Mesh", signalStrength: -65, frequency: "2.4 GHz", channel: 1, encryption: "WPA2", speed: "72 Mbps", isSecured: true, isConnected: false),
-        WiFiNetwork(name: "OpenNet", signalStrength: -80, frequency: "2.4 GHz", channel: 9, encryption: "OPEN", speed: "54 Mbps", isSecured: false, isConnected: false),
+        WiFiNetwork(name: "NeuralEther_5G", signal: -25, secured: true, mac: "00:1A:2B:3C:4D:5E", channel: 36),
+        WiFiNetwork(name: "HomeNetwork_2.4G", signal: -42, secured: true, mac: "AA:BB:CC:DD:EE:FF", channel: 6),
+        WiFiNetwork(name: "CafeWiFi_Free", signal: -55, secured: false, mac: "11:22:33:44:55:66", channel: 11),
+        WiFiNetwork(name: "Neighbor_5G", signal: -68, secured: true, mac: "77:88:99:AA:BB:CC", channel: 44),
+        WiFiNetwork(name: "IoT_Devices", signal: -35, secured: true, mac: "DD:EE:FF:00:11:22", channel: 1),
+        WiFiNetwork(name: "Guest_Network", signal: -73, secured: false, mac: "33:44:55:66:77:88", channel: 9),
+        WiFiNetwork(name: "5G_Ultra_Fast", signal: -30, secured: true, mac: "99:AA:BB:CC:DD:EE", channel: 149),
     ]
 }
 
-// MARK: - Neural Toggle Style
+// MARK: - Hacker Toggle Style
+
+struct HackerToggleStyle: ToggleStyle {
+    private let hackerGreen = Color(hex: "#00FF41")
+    private let hackerBG = Color(hex: "#0D0208")
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            ZStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(configuration.isOn ? hackerGreen.opacity(0.3) : hackerBG)
+                    .frame(width: 44, height: 22)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(configuration.isOn ? hackerGreen : hackerGreen.opacity(0.2), lineWidth: 1)
+                    )
+
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(configuration.isOn ? hackerGreen : hackerGreen.opacity(0.3))
+                    .frame(width: 18, height: 16)
+                    .offset(x: configuration.isOn ? 10 : -10)
+                    .animation(.easeInOut(duration: 0.15), value: configuration.isOn)
+            }
+            .onTapGesture { configuration.isOn.toggle() }
+        }
+    }
+}
+
+// MARK: - Insight Card (reused from old code for compatibility)
+
+struct InsightCard<Content: View>: View {
+    var title: String?
+    @ViewBuilder var content: () -> Content
+
+    init(title: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            if let title = title {
+                Text(title)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(.onSurfaceVariant.opacity(0.5))
+            }
+            content()
+        }
+        .padding(Spacing.lg)
+        .background(Color.surfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.lg))
+    }
+}
+
+// MARK: - Neural Toggle Style (kept for backward compatibility)
 
 struct NeuralToggleStyle: ToggleStyle {
     var accentColor: Color = .neuralPrimary
@@ -1259,29 +1391,18 @@ struct NeuralToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack {
             configuration.label
+            Spacer()
             ZStack {
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(configuration.isOn ? accentColor : Color.surfaceBright)
-                    .frame(width: 48, height: 28)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(
-                                configuration.isOn ? accentColor.opacity(0.3) : Color.outlineVariant.opacity(0.2),
-                                lineWidth: 1
-                            )
-                    )
-
+                RoundedRectangle(cornerRadius: CornerRadius.full)
+                    .fill(configuration.isOn ? accentColor.opacity(0.3) : Color.surfaceContainerHighest)
+                    .frame(width: 44, height: 26)
                 Circle()
-                    .fill(Color.white)
-                    .frame(width: 22, height: 22)
-                    .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                    .fill(configuration.isOn ? accentColor : Color.onSurfaceVariant)
+                    .frame(width: 20, height: 20)
                     .offset(x: configuration.isOn ? 10 : -10)
+                    .animation(.easeInOut(duration: 0.2), value: configuration.isOn)
             }
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    configuration.isOn.toggle()
-                }
-            }
+            .onTapGesture { configuration.isOn.toggle() }
         }
     }
 }
