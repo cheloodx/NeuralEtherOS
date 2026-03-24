@@ -179,8 +179,15 @@ struct CreatorPanelView: View {
 
     private func startMatrixRain() {
         let chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンABCDEF0123456789"
-        matrixTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { _ in
-            if matrixColumns.count > 40 { matrixColumns.removeFirst(5) }
+        matrixTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
+            // Stop matrix rain after authentication to save performance
+            if isAuthenticated {
+                matrixTimer?.invalidate()
+                matrixTimer = nil
+                matrixColumns.removeAll()
+                return
+            }
+            if matrixColumns.count > 25 { matrixColumns.removeFirst(5) }
             let newCol = MatrixColumn(
                 char: String(chars.randomElement() ?? "0"),
                 x: CGFloat.random(in: 0...380),
@@ -1008,10 +1015,17 @@ struct CreatorPanelView: View {
 
     private func rescanWifi() {
         isScanning = true
-        logActivity("WIFI_SCAN_STARTED")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            isScanning = false
-            wifiNetworks.shuffle()
+        logActivity("WIFI_SCAN_STARTED: monitor mode active")
+        // Generate fresh signal strengths and shuffle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                // Update signals dynamically
+                for i in wifiNetworks.indices {
+                    wifiNetworks[i].signal = Int.random(in: -80 ... -20)
+                }
+                wifiNetworks.shuffle()
+                isScanning = false
+            }
             logActivity("WIFI_SCAN_COMPLETE: \(wifiNetworks.count) networks found")
         }
     }
@@ -1039,10 +1053,10 @@ struct CreatorPanelView: View {
 
         var totalDelay: Double = 0.0
         for (i, phase) in phases.enumerated() {
-            let delay = Double(i) * 0.6 + Double.random(in: 0.2...0.5)
+            let delay = Double(i) * 0.3 + Double.random(in: 0.1...0.2)
             totalDelay = delay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.easeInOut(duration: 0.15)) {
                     crackProgress = phase.0
                     crackPhase = phase.1
                 }
@@ -1053,7 +1067,7 @@ struct CreatorPanelView: View {
         }
 
         // Final: reveal password
-        DispatchQueue.main.asyncAfter(deadline: .now() + totalDelay + 0.8) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + totalDelay + 0.4) {
             if crackingNetworkId == network.id {
                 crackedPasswords[network.id] = network.password
                 crackingNetworkId = nil
@@ -1548,33 +1562,30 @@ struct CreatorPanelView: View {
         selectedCCTV = nil
         logActivity("CCTV_SCAN_START: radius=1000m protocols=RTSP,ONVIF,HTTP")
 
-        // Animate progress
         let totalCams = CCTVCamera.mockCameras.count
-        let steps = totalCams + 5 // extra steps for startup/finish animation
-        let stepDelay = 0.2
+        let stepDelay = 0.12 // faster scanning
 
-        for i in 1...steps {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * stepDelay) {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    cctvScanProgress = min(1.0, Double(i) / Double(steps))
-                }
+        // Quick initial progress
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation { cctvScanProgress = 0.15 }
+        }
 
-                // Add cameras progressively (one per step after initial 2 steps)
-                let camIdx = i - 3 // start adding from step 3
-                if camIdx >= 0 && camIdx < totalCams {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        cctvCameras.append(CCTVCamera.mockCameras[camIdx])
-                        if CCTVCamera.mockCameras[camIdx].isOnline {
-                            cctvConnectedCount += 1
-                        }
+        // Add cameras quickly
+        for i in 0..<totalCams {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(i) * stepDelay) {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    cctvScanProgress = 0.15 + 0.75 * (Double(i + 1) / Double(totalCams))
+                    cctvCameras.append(CCTVCamera.mockCameras[i])
+                    if CCTVCamera.mockCameras[i].isOnline {
+                        cctvConnectedCount += 1
                     }
-                    logActivity("CCTV_FOUND: \(CCTVCamera.mockCameras[camIdx].name) [\(CCTVCamera.mockCameras[camIdx].ip)]")
                 }
+                logActivity("CCTV_FOUND: \(CCTVCamera.mockCameras[i].name) [\(CCTVCamera.mockCameras[i].ip)]")
             }
         }
 
-        // Finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + Double(steps) * stepDelay + 0.3) {
+        // Finish fast
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(totalCams) * stepDelay + 0.2) {
             withAnimation {
                 isScanningCCTV = false
                 cctvScanProgress = 1.0
@@ -2430,23 +2441,40 @@ struct CreatorPanelView: View {
                     Text("AGE VERIFICATION REQUIRED")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(hackerRed)
-                    Text("You must verify you are 18+ to access this section.")
+                    Text("You must be 18 or older to access this section.")
                         .font(.system(size: 9, design: .monospaced))
                         .foregroundColor(hackerDimGreen)
                         .multilineTextAlignment(.center)
-                    Button {
-                        withAnimation { adultAgeVerified = true }
-                        logActivity("+18_AGE_VERIFIED")
-                    } label: {
-                        Text("I AM 18+ \u{2014} VERIFY & ENTER")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundColor(hackerBG)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, Spacing.md)
-                            .background(hackerRed)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                    // Age input verification
+                    HStack(spacing: Spacing.md) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) { adultAgeVerified = true }
+                            logActivity("+18_AGE_VERIFIED: User confirmed 18+")
+                        } label: {
+                            Text("I AM 18+ \u{2014} ENTER")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerBG)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, Spacing.md)
+                                .background(hackerRed)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            logActivity("+18_AGE_DENIED: User is under 18")
+                        } label: {
+                            Text("UNDER 18 \u{2014} EXIT")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerDimGreen)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, Spacing.md)
+                                .background(hackerDimGreen.opacity(0.2))
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(Spacing.lg)
                 .background(hackerRed.opacity(0.05))
@@ -2456,10 +2484,13 @@ struct CreatorPanelView: View {
                 // Master toggle
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("+18 CONTENT FILTER")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundColor(hackerGreen)
-                        Text(orchestrator.adultContentEnabled ? "UNLOCKED \u{2014} Age-restricted content visible" : "LOCKED \u{2014} All content filtered")
+                        HStack(spacing: Spacing.sm) {
+                            Circle().fill(orchestrator.adultContentEnabled ? hackerRed : hackerDimGreen).frame(width: 8, height: 8)
+                            Text("+18 CONTENT ACCESS")
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerGreen)
+                        }
+                        Text(orchestrator.adultContentEnabled ? "UNLOCKED \u{2014} Content accessible" : "LOCKED \u{2014} All content filtered")
                             .font(.system(size: 8, design: .monospaced))
                             .foregroundColor(orchestrator.adultContentEnabled ? hackerRed : hackerDimGreen)
                     }
@@ -2467,8 +2498,10 @@ struct CreatorPanelView: View {
                     Toggle("", isOn: Binding(
                         get: { orchestrator.adultContentEnabled },
                         set: { newVal in
-                            orchestrator.adultContentEnabled = newVal
-                            logActivity(newVal ? "+18_UNLOCKED" : "+18_LOCKED")
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                orchestrator.adultContentEnabled = newVal
+                            }
+                            logActivity(newVal ? "+18_CONTENT_UNLOCKED" : "+18_CONTENT_LOCKED")
                         }
                     ))
                     .toggleStyle(HackerToggleStyle())
@@ -2484,20 +2517,27 @@ struct CreatorPanelView: View {
                     // Filter level
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         HStack {
-                            Text("FILTER LEVEL")
+                            Text("CONTENT FILTER LEVEL")
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .foregroundColor(hackerAmber)
                             Spacer()
                             Text(filterLevelText)
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
                                 .foregroundColor(filterLevelColor)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(filterLevelColor.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
                         }
                         Slider(value: $adultFilterLevel, in: 1...5, step: 1)
-                            .tint(hackerRed)
+                            .tint(filterLevelColor)
+                            .onChange(of: adultFilterLevel) { _ in
+                                logActivity("+18_FILTER_LEVEL: \(filterLevelText)")
+                            }
                         HStack {
                             Text("SOFT")
                                 .font(.system(size: 7, design: .monospaced))
-                                .foregroundColor(hackerDimGreen)
+                                .foregroundColor(hackerGreen)
                             Spacer()
                             Text("EXTREME")
                                 .font(.system(size: 7, design: .monospaced))
@@ -2508,12 +2548,53 @@ struct CreatorPanelView: View {
                     .background(hackerRed.opacity(0.03))
                     .clipShape(RoundedRectangle(cornerRadius: 4))
 
+                    // Unlock All / Lock All buttons
+                    HStack(spacing: Spacing.sm) {
+                        Button {
+                            withAnimation {
+                                for key in adultCategories.keys { adultCategories[key] = true }
+                            }
+                            logActivity("+18_ALL_CATEGORIES_UNLOCKED")
+                        } label: {
+                            Text("UNLOCK ALL")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerRed)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                                .background(hackerRed.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                        .buttonStyle(.plain)
+                        Button {
+                            withAnimation {
+                                for key in adultCategories.keys { adultCategories[key] = false }
+                                adultShowPreview = nil
+                            }
+                            logActivity("+18_ALL_CATEGORIES_LOCKED")
+                        } label: {
+                            Text("LOCK ALL")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerGreen)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                                .background(hackerGreen.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     // Categories with toggles
                     VStack(spacing: Spacing.sm) {
-                        Text("CONTENT CATEGORIES")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(hackerGreen)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack {
+                            Text("CONTENT CATEGORIES")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerGreen)
+                            Spacer()
+                            let enabledCount = adultCategories.values.filter { $0 }.count
+                            Text("\(enabledCount)/\(adultCategories.count) ACTIVE")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(enabledCount > 0 ? hackerRed : hackerDimGreen)
+                        }
 
                         adultCategoryRow("Movies & Shows", icon: "film.fill", count: 12847, color: hackerAmber)
                         adultCategoryRow("Live Streaming", icon: "video.fill", count: 342, color: hackerRed)
@@ -2527,39 +2608,77 @@ struct CreatorPanelView: View {
                     if let preview = adultShowPreview {
                         VStack(alignment: .leading, spacing: Spacing.sm) {
                             HStack {
-                                Text("PREVIEW: \(preview)")
+                                Image(systemName: "play.rectangle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(hackerRed)
+                                Text("PREVIEW: \(preview.uppercased())")
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                                     .foregroundColor(hackerAmber)
                                 Spacer()
                                 Button {
-                                    adultShowPreview = nil
+                                    withAnimation { adultShowPreview = nil }
                                 } label: {
-                                    Image(systemName: "xmark")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(hackerRed)
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "xmark").font(.system(size: 8))
+                                        Text("CLOSE").font(.system(size: 7, weight: .bold, design: .monospaced))
+                                    }
+                                    .foregroundColor(hackerRed)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(hackerRed.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 3))
                                 }
                                 .buttonStyle(.plain)
                             }
 
-                            // Simulated content grid
+                            // Content grid with realistic items
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 6) {
-                                ForEach(0..<6, id: \.self) { i in
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(hackerRed.opacity(Double.random(in: 0.05...0.15)))
-                                            .aspectRatio(3/4, contentMode: .fit)
-                                        VStack(spacing: 2) {
-                                            Image(systemName: "play.circle.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundColor(hackerRed.opacity(0.5))
-                                            Text("ITEM_\(i + 1)")
-                                                .font(.system(size: 6, weight: .bold, design: .monospaced))
-                                                .foregroundColor(hackerRed.opacity(0.4))
+                                ForEach(0..<9, id: \.self) { i in
+                                    let titles = ["Trending", "New", "Popular", "Exclusive", "HD", "Live", "Premium", "VIP", "Hot"]
+                                    let icons = ["flame.fill", "star.fill", "heart.fill", "crown.fill", "sparkles", "bolt.fill", "diamond.fill", "trophy.fill", "wand.and.stars"]
+                                    Button {
+                                        logActivity("+18_CONTENT_TAP: \(preview) item \(i+1)")
+                                    } label: {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(LinearGradient(
+                                                    colors: [hackerRed.opacity(0.08), hackerAmber.opacity(0.05)],
+                                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                                ))
+                                                .aspectRatio(3.0/4.0, contentMode: .fit)
+                                            VStack(spacing: 4) {
+                                                Image(systemName: icons[i % icons.count])
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(hackerRed.opacity(0.6))
+                                                Text(titles[i % titles.count])
+                                                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                                    .foregroundColor(hackerAmber.opacity(0.7))
+                                                Text("\(Int.random(in: 100...9999)) views")
+                                                    .font(.system(size: 5, design: .monospaced))
+                                                    .foregroundColor(hackerDimGreen)
+                                            }
                                         }
+                                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerRed.opacity(0.15), lineWidth: 0.5))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
                                     }
-                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerRed.opacity(0.2), lineWidth: 0.5))
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                    .buttonStyle(.plain)
                                 }
+                            }
+
+                            // Playback simulation bar
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "play.fill").font(.system(size: 8)).foregroundColor(hackerRed)
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        RoundedRectangle(cornerRadius: 1).fill(hackerRed.opacity(0.1))
+                                        RoundedRectangle(cornerRadius: 1).fill(hackerRed.opacity(0.5))
+                                            .frame(width: geo.size.width * 0.35)
+                                    }
+                                }
+                                .frame(height: 3)
+                                Text("12:35 / 35:20")
+                                    .font(.system(size: 6, design: .monospaced))
+                                    .foregroundColor(hackerDimGreen)
                             }
                         }
                         .padding(Spacing.md)
@@ -2568,18 +2687,18 @@ struct CreatorPanelView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
 
-                    // Stats
+                    // Stats (live-updating)
                     VStack(spacing: Spacing.sm) {
                         Text("CONTENT STATISTICS")
                             .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundColor(hackerGreen)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        adultStatRow("Total Items", "74,476")
-                        adultStatRow("Active Streams", "342")
-                        adultStatRow("Blocked Today", "12,847")
-                        adultStatRow("Storage Used", "2.4 TB")
-                        adultStatRow("Users Online", "8,923")
-                        adultStatRow("Reports Pending", "47")
+                        adultStatRow("Total Items", "\(74476 + Int.random(in: 0...50))")
+                        adultStatRow("Active Streams", "\(340 + Int.random(in: 0...20))")
+                        adultStatRow("Blocked Today", "\(12800 + Int.random(in: 0...100))")
+                        adultStatRow("Storage Used", "2.\(Int.random(in: 3...8)) TB")
+                        adultStatRow("Users Online", "\(8900 + Int.random(in: 0...200))")
+                        adultStatRow("Reports Pending", "\(40 + Int.random(in: 0...15))")
                     }
                     .padding(Spacing.md)
                     .background(hackerGreen.opacity(0.03))
@@ -2974,7 +3093,7 @@ struct ActivityEntry: Identifiable {
 struct WiFiNetwork: Identifiable {
     let id = UUID()
     let name: String
-    let signal: Int
+    var signal: Int
     let secured: Bool
     let mac: String
     let channel: Int

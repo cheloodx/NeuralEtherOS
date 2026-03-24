@@ -456,15 +456,15 @@ struct NeuralSearchView: View {
         showSuggestions = true
         isInputFocused = false
 
-        withAnimation(.easeIn(duration: 0.2)) {
+        withAnimation(.easeIn(duration: 0.15)) {
             isTyping = true
         }
 
-        let delay = Double.random(in: 0.8...2.0)
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        // Fast response with minimal delay for natural feel
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             let (response, sources, regions) = self.agentProcess(text)
             let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
-            withAnimation(.easeIn(duration: 0.2)) {
+            withAnimation(.easeIn(duration: 0.15)) {
                 self.isTyping = false
                 self.messages.append(aiMsg)
             }
