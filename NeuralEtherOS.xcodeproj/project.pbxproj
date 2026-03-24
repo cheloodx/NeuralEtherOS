@@ -25,6 +25,8 @@
 		AB1D13059555A2772F0400B6 /* CreativeForgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E115986A3059610C395E466 /* CreativeForgeView.swift */; };
 		65EF848F6C03FD5EBFAA0FF6 /* SecurityVaultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85CB9A31F8F793D42C925A63 /* SecurityVaultView.swift */; };
 		8FB4156762CD894FB5894A69 /* DeploymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */; };
+		6684ACD11DCF5124B757C016 /* NeuralSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76EE19C3A923A398464643B5 /* NeuralSearchView.swift */; };
+		96084FFBA5E0DE359AE55686 /* CreatorPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFC202297956F60A6217CAB /* CreatorPanelView.swift */; };
 		95197EF0C00D47E79F9B04B3 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */; };
 		1253613CF10DAF2FA7DE13DE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D5DE88EA417BDF66BA3E1894 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -48,6 +50,8 @@
 		7E115986A3059610C395E466 /* CreativeForgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreativeForgeView.swift; sourceTree = "<group>"; };
 		85CB9A31F8F793D42C925A63 /* SecurityVaultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityVaultView.swift; sourceTree = "<group>"; };
 		9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeploymentHubView.swift; sourceTree = "<group>"; };
+		76EE19C3A923A398464643B5 /* NeuralSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralSearchView.swift; sourceTree = "<group>"; };
+		DAFC202297956F60A6217CAB /* CreatorPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorPanelView.swift; sourceTree = "<group>"; };
 		3EA4C3103D74D91CC3B61ABD /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		F96FD3F547723E8AD6884A0C /* NeuralEtherOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeuralEtherOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A23BB9B9C4FB00984344C59 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -150,8 +154,10 @@
 			isa = PBXGroup;
 			children = (
 				4E445A9519AE0677379B7745 /* CreativeForge */,
+				CFE10392CAC50C8C8551358F /* Creator */,
 				74324A6D0C2CAF93C3A55DAA /* Dashboard */,
 				9BF3FF50676933A263DE0CE6 /* DeploymentHub */,
+				75D75A23C2B61BF9144770B9 /* Search */,
 				B34BFE5AF63D6CA2A2A4470C /* SecurityVault */,
 			);
 			path = Modules;
@@ -163,6 +169,14 @@
 				7E115986A3059610C395E466 /* CreativeForgeView.swift */,
 			);
 			path = CreativeForge;
+			sourceTree = "<group>";
+		};
+		CFE10392CAC50C8C8551358F /* Creator */ = {
+			isa = PBXGroup;
+			children = (
+				DAFC202297956F60A6217CAB /* CreatorPanelView.swift */,
+			);
+			path = Creator;
 			sourceTree = "<group>";
 		};
 		74324A6D0C2CAF93C3A55DAA /* Dashboard */ = {
@@ -179,6 +193,14 @@
 				9A32B632B47DFE04A8CAEE5A /* DeploymentHubView.swift */,
 			);
 			path = DeploymentHub;
+			sourceTree = "<group>";
+		};
+		75D75A23C2B61BF9144770B9 /* Search */ = {
+			isa = PBXGroup;
+			children = (
+				76EE19C3A923A398464643B5 /* NeuralSearchView.swift */,
+			);
+			path = Search;
 			sourceTree = "<group>";
 		};
 		B34BFE5AF63D6CA2A2A4470C /* SecurityVault */ = {
@@ -266,6 +288,8 @@
 				AB1D13059555A2772F0400B6 /* CreativeForgeView.swift in Sources */,
 				65EF848F6C03FD5EBFAA0FF6 /* SecurityVaultView.swift in Sources */,
 				8FB4156762CD894FB5894A69 /* DeploymentHubView.swift in Sources */,
+				6684ACD11DCF5124B757C016 /* NeuralSearchView.swift in Sources */,
+				96084FFBA5E0DE359AE55686 /* CreatorPanelView.swift in Sources */,
 				95197EF0C00D47E79F9B04B3 /* Color+Hex.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

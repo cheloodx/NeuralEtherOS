@@ -10,15 +10,19 @@ struct MainContainerView: View {
     enum Tab: String, CaseIterable {
         case dashboard = "SOVEREIGN"
         case forge = "FORGE"
+        case search = "SEARCH"
         case security = "VAULT"
         case deploy = "DEPLOY"
+        case creator = "CREATOR"
 
         var icon: String {
             switch self {
             case .dashboard: return "brain.head.profile"
             case .forge: return "bolt.fill"
+            case .search: return "magnifyingglass"
             case .security: return "lock.shield"
             case .deploy: return "shippingbox"
+            case .creator: return "crown.fill"
             }
         }
     }
@@ -37,10 +41,14 @@ struct MainContainerView: View {
                         DashboardView()
                     case .forge:
                         CreativeForgeView()
+                    case .search:
+                        NeuralSearchView()
                     case .security:
                         SecurityVaultView()
                     case .deploy:
                         DeploymentHubView()
+                    case .creator:
+                        CreatorPanelView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,12 +92,12 @@ struct MainContainerView: View {
         } label: {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 20))
+                    .font(.system(size: 16))
                     .foregroundColor(selectedTab == tab ? .neuralPrimary : .onSurfaceVariant)
 
                 Text(tab.rawValue)
-                    .font(NeuralFont.monoSmall())
-                    .tracking(1.5)
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .tracking(0.5)
                     .foregroundColor(selectedTab == tab ? .neuralPrimary : .onSurfaceVariant)
             }
             .frame(maxWidth: .infinity)
