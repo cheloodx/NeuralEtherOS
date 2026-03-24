@@ -33,12 +33,12 @@ struct CreatorPanelView: View {
     @State private var selectedCamera: Int = 0
     @State private var isRecording: Bool = false
     @State private var cameraZoom: Double = 1.0
-    @State private var cctvCameras: [CCTVCamera] = []
+    @State private var cctvCameras: [CCTVCamera] = CCTVCamera.mockCameras
     @State private var isScanningCCTV: Bool = false
     @State private var cctvScanProgress: Double = 0.0
     @State private var selectedCCTV: CCTVCamera? = nil
     @State private var cctvViewMode: Int = 0  // 0 = list, 1 = grid, 2 = map
-    @State private var cctvConnectedCount: Int = 0
+    @State private var cctvConnectedCount: Int = 12
     @State private var cctvRecordingIds: Set<UUID> = []
 
     // Matrix rain
@@ -444,11 +444,7 @@ struct CreatorPanelView: View {
                 rescanWifi()
             }
         }
-        case 2: webcamTab.onAppear {
-            if cctvCameras.isEmpty && !isScanningCCTV {
-                scanForCCTV()
-            }
-        }
+        case 2: webcamTab
         case 3: networkMonitorTab
         case 4: deviceManagerTab
         case 5: exploitToolsTab
@@ -2432,7 +2428,7 @@ struct CreatorPanelView: View {
         "Explicit Images": false,
         "Dating & Chat": true,
     ]
-    @State private var adultAgeVerified: Bool = false
+    @State private var adultAgeVerified: Bool = true
     @State private var adultFilterLevel: Double = 3.0
     @State private var adultSelectedCategory: String = "Movies & Shows"
 

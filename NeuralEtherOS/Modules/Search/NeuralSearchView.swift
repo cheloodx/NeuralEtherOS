@@ -20,14 +20,11 @@ struct NeuralSearchView: View {
     // Multilingual greetings for initial message
     private var welcomeMessage: String {
         """
-        Neural Ether AI \u{2014} Online.
-        Connected: \(connectedCountries) countries \u{2022} \(dataCenters) data centers \u{2022} \(indexedSources / 1_000_000)M+ sources.
+        Hi! I'm Neural Ether AI \u{2014} your personal AI assistant.
 
-        \u{1F30D} I speak all languages. Write in any language and I'll respond in the same one.
+        I'm connected to \(connectedCountries) countries and \(indexedSources / 1_000_000)M+ sources. I speak all languages \u{2014} write in any language and I'll respond in the same one.
 
-        \u{1F50D} Ask me anything \u{2014} I search, analyze, learn and suggest autonomously.
-
-        Try: "What's the system status?" or "Care e starea sistemului?" or "Quel est l'\u{00E9}tat du syst\u{00E8}me?"
+        How can I help you today?
         """
     }
 
@@ -336,8 +333,9 @@ struct NeuralSearchView: View {
             isTyping = true
         }
 
-        // Fast response with minimal delay for natural feel
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // Realistic typing delay for natural feel
+        let delay = Double.random(in: 0.8...1.5)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             let (response, sources, regions) = self.agentProcess(text)
             let aiMsg = ChatMessage(role: .assistant, content: response, timestamp: Date(), sourceCount: sources, regions: regions)
             withAnimation(.easeIn(duration: 0.15)) {
@@ -1055,53 +1053,29 @@ struct NeuralSearchView: View {
         return "Health & Fitness:\n\n\u{25CF} Exercise: Min 30 min/day\n\u{25CF} Hydration: 2-3 liters\n\u{25CF} Sleep: 7-9 hours\n\u{25CF} Balanced nutrition\n\u{25CF} Mindfulness: 10 min/day\n\nTrending 2026:\n\u{25CF} AI-personalized workouts\n\u{25CF} Advanced wearables\n\u{25CF} Biohacking\n\nNote: Not medical advice."
     }
 
-    // MARK: - Default Response (handles ANY query)
+    // MARK: - Default Response (handles ANY query naturally)
 
     private func defaultResponse(_ lang: String, _ query: String) -> String {
-        let syncStr = pct(orchestrator.syncLevel)
-        let nodesStr = "\(orchestrator.activeNodes)"
-        let latStr = ms(orchestrator.latency)
+        // Natural conversational responses like ChatGPT
+        let roResponses = [
+            "Bun\u{0103} \u{00EE}ntrebare! Am analizat \u{201E}\(query)\u{201D} \u{0219}i iat\u{0103} ce am g\u{0103}sit:\n\nAcest subiect este foarte interesant. Din datele mele din \(connectedCountries) \u{021B}\u{0103}ri, pot spune c\u{0103} este un topic relevant \u{0219}i actual.\n\nVrei s\u{0103} aprofund\u{0103}m? Pot c\u{0103}uta mai multe detalii sau s\u{0103} analiz\u{0103}m din alt unghi.",
+            "Am c\u{0103}utat informa\u{021B}ii despre \u{201E}\(query)\u{201D}.\n\nDin analiza mea:\n\u{2022} Este un subiect cu mult interes global\n\u{2022} Am g\u{0103}sit \(Int.random(in: 50...500)) surse relevante\n\u{2022} Tendin\u{021B}a este \u{00EE}n cre\u{0219}tere\n\nPot s\u{0103} explic mai detaliat orice aspect. Doar \u{00EE}ntreab\u{0103}!",
+            "Interesant! \u{201E}\(query)\u{201D} \u{2014} am analizat acest lucru.\n\nCe pot spune este c\u{0103} am acces la date din \(connectedCountries) \u{021B}\u{0103}ri \u{0219}i \(indexedSources / 1_000_000)M+ surse, \u{0219}i subiectul \u{0103}sta este destul de c\u{0103}utat.\n\nVrei mai multe detalii? Pot s\u{0103} caut specific ce te intereseaz\u{0103}.",
+            "Am procesat cererea ta: \u{201E}\(query)\u{201D}\n\nIat\u{0103} ce \u{0219}tiu:\n\u{2022} Subiectul este actual \u{0219}i relevant\n\u{2022} Exist\u{0103} multe perspective diferite\n\u{2022} Pot oferi analize detaliate\n\nSpune-mi mai exact ce aspect te intereseaz\u{0103} \u{0219}i voi c\u{0103}uta mai \u{00EE}n profunzime!",
+            "Am \u{00EE}n\u{021B}eles! Despre \u{201E}\(query)\u{201D}:\n\nAm accesat bazele mele de date \u{0219}i am g\u{0103}sit informa\u{021B}ii utile. Acesta este un domeniu pe care \u{00EE}l pot analiza \u{00EE}n detaliu.\n\n\u{00CE}ntreab\u{0103}-m\u{0103} orice altceva sau cere-mi s\u{0103} aprofundez!"
+        ]
+        let enResponses = [
+            "Great question! I analyzed \u{201C}\(query)\u{201D} across my \(connectedCountries)-country network.\n\nThis is a fascinating topic with lots of data available. I found \(Int.random(in: 50...500)) relevant sources.\n\nWant me to dig deeper into any specific aspect? Just ask!",
+            "I looked into \u{201C}\(query)\u{201D} for you.\n\nHere\u{2019}s what I found:\n\u{2022} This topic is trending globally\n\u{2022} Multiple perspectives available\n\u{2022} I can provide detailed analysis\n\nFeel free to ask follow-up questions!",
+            "Interesting! About \u{201C}\(query)\u{201D}:\n\nI\u{2019}ve searched through \(indexedSources / 1_000_000)M+ sources across \(connectedCountries) countries. This is a relevant and current topic with a lot to explore.\n\nWhat specific angle interests you most?",
+            "I\u{2019}ve processed your query: \u{201C}\(query)\u{201D}\n\nKey insights:\n\u{2022} Highly relevant topic\n\u{2022} Growing global interest\n\u{2022} Multiple data points available\n\nAsk me anything else or I can go deeper on this!",
+            "About \u{201C}\(query)\u{201D} \u{2014} I\u{2019}ve analyzed this across my network.\n\nI have access to comprehensive data on this subject. I can break it down further, compare different viewpoints, or explore related topics.\n\nWhat would you like to know more about?"
+        ]
 
         if lang == "ro" {
-            return """
-            Am c\u{0103}utat \u{00EE}n \(connectedCountries) \u{021B}\u{0103}ri \u{0219}i \(indexedSources / 1_000_000)M+ surse pentru: "\(query)"
-
-            Am g\u{0103}sit \(Int.random(in: 50...500)) rezultate relevante din \(Int.random(in: 15...47)) centre de date.
-
-            Status sistem:
-            \u{25CF} Sync: \(syncStr)
-            \u{25CF} Noduri: \(nodesStr) active
-            \u{25CF} Laten\u{021B}\u{0103}: \(latStr)
-
-            Pot s\u{0103} caut mai \u{00EE}n detaliu. \u{00CE}ncearc\u{0103}:
-            \u{25CF} "Starea sistemului" \u{2014} Diagnostic complet
-            \u{25CF} "Securitate" \u{2014} Raport securitate
-            \u{25CF} "Re\u{021B}ea" \u{2014} Analiz\u{0103} re\u{021B}ea global\u{0103}
-            \u{25CF} "Trending" \u{2014} Ce e popular acum
-            \u{25CF} "Ajutor" \u{2014} Toate func\u{021B}iile mele
-
-            Sugestie: Fii mai specific \u{0219}i voi da un r\u{0103}spuns mai detaliat!
-            """
+            return roResponses[Int.random(in: 0..<roResponses.count)]
         }
-        return """
-        I've searched across \(connectedCountries) countries and \(indexedSources / 1_000_000)M+ sources for: "\(query)"
-
-        Found \(Int.random(in: 50...500)) relevant results from \(Int.random(in: 15...47)) data centers.
-
-        System snapshot:
-        \u{25CF} Sync: \(syncStr)
-        \u{25CF} Nodes: \(nodesStr) active
-        \u{25CF} Latency: \(latStr)
-
-        I can go deeper. Try:
-        \u{25CF} "System status" \u{2014} Full diagnostics
-        \u{25CF} "Security" \u{2014} Security report
-        \u{25CF} "Network" \u{2014} Global network analysis
-        \u{25CF} "Trending" \u{2014} What's popular now
-        \u{25CF} "Help" \u{2014} All my capabilities
-
-        Suggestion: Be more specific and I'll give a more detailed answer!
-        """
+        return enResponses[Int.random(in: 0..<enResponses.count)]
     }
 
     // MARK: - Clear
