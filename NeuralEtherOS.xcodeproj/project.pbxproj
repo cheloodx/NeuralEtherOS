@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BB0000000000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* Assets.xcassets */; };
 		25ABC863580C7CDA3D01F6BC /* NeuralEtherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04587231B06430991E71FB5C /* NeuralEtherApp.swift */; };
 		ACD839FBDB3D1EFBFF8AF8A9 /* NeuralOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1DC0A6782817C11BBF747F /* NeuralOrchestrator.swift */; };
 		0D31921B8C9156CAC5DE45D4 /* MainContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1702579FDCE2DE985CB361A6 /* MainContainerView.swift */; };
@@ -50,6 +51,7 @@
 		F68AB6A5E8F0A7BE65DAC0D6 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color+Hex.swift; sourceTree = "<group>"; };
 		71CCD365E3A654DA84DBA191 /* NeuralEtherOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeuralEtherOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB0000000000000000000002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +92,7 @@
 				75C76AD4A8285D8ACA888B61 /* DesignSystem */,
 				3136E6F1DF677A1E5E9176FE /* Extensions */,
 				F96A124F74B336036B524A40 /* Modules */,
+				BB0000000000000000000002 /* Assets.xcassets */,
 				AA0000000000000000000001 /* Info.plist */,
 			);
 			path = NeuralEtherOS;
@@ -247,6 +250,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB0000000000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,7 +290,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSTSCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
@@ -321,7 +325,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSTSCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CLANG_ENABLE_MODULES = YES;
