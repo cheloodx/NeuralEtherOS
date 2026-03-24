@@ -73,7 +73,7 @@ struct CreatorPanelView: View {
     ]
 
     private let creatorTabs = [
-        (">_", "TERMINAL"),
+        ("chevron.left.forwardslash.chevron.right", "TERMINAL"),
         ("wifi", "WIFI"),
         ("web.camera.fill", "WEBCAM"),
         ("network", "NETWORK"),
@@ -1435,33 +1435,35 @@ struct CreatorPanelView: View {
         logActivity("CCTV_SCAN_START: radius=1000m protocols=RTSP,ONVIF,HTTP")
 
         // Animate progress
-        let steps = 20
+        let totalCams = CCTVCamera.mockCameras.count
+        let steps = totalCams + 5 // extra steps for startup/finish animation
+        let stepDelay = 0.2
+
         for i in 1...steps {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.15) {
-                withAnimation(.easeInOut(duration: 0.1)) {
-                    cctvScanProgress = Double(i) / Double(steps)
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * stepDelay) {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    cctvScanProgress = min(1.0, Double(i) / Double(steps))
                 }
 
-                // Add cameras progressively
-                if i % 3 == 0 {
-                    let idx = i / 3 - 1
-                    if idx < CCTVCamera.mockCameras.count {
-                        cctvCameras.append(CCTVCamera.mockCameras[idx])
-                        if CCTVCamera.mockCameras[idx].isOnline {
+                // Add cameras progressively (one per step after initial 2 steps)
+                let camIdx = i - 3 // start adding from step 3
+                if camIdx >= 0 && camIdx < totalCams {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        cctvCameras.append(CCTVCamera.mockCameras[camIdx])
+                        if CCTVCamera.mockCameras[camIdx].isOnline {
                             cctvConnectedCount += 1
                         }
                     }
+                    logActivity("CCTV_FOUND: \(CCTVCamera.mockCameras[camIdx].name) [\(CCTVCamera.mockCameras[camIdx].ip)]")
                 }
             }
         }
 
         // Finish
-        DispatchQueue.main.asyncAfter(deadline: .now() + Double(steps) * 0.15 + 0.5) {
-            isScanningCCTV = false
-            // Add any remaining cameras
-            for cam in CCTVCamera.mockCameras where !cctvCameras.contains(where: { $0.name == cam.name }) {
-                cctvCameras.append(cam)
-                if cam.isOnline { cctvConnectedCount += 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(steps) * stepDelay + 0.3) {
+            withAnimation {
+                isScanningCCTV = false
+                cctvScanProgress = 1.0
             }
             logActivity("CCTV_SCAN_DONE: \(cctvCameras.count) cameras, \(cctvConnectedCount) online")
         }
@@ -1832,7 +1834,7 @@ struct CreatorPanelView: View {
                         adultCategoryRow("Movies & Shows", icon: "film.fill", count: 12847, color: hackerAmber)
                         adultCategoryRow("Live Streaming", icon: "video.fill", count: 342, color: hackerRed)
                         adultCategoryRow("Premium Content", icon: "star.fill", count: 8923, color: hackerCyan)
-                        adultCategoryRow("VR Experiences", icon: "visionpro.fill", count: 1456, color: hackerGreen)
+                        adultCategoryRow("VR Experiences", icon: "eye.circle.fill", count: 1456, color: hackerGreen)
                         adultCategoryRow("Explicit Images", icon: "photo.fill", count: 45230, color: hackerAmber)
                         adultCategoryRow("Dating & Chat", icon: "bubble.left.and.bubble.right.fill", count: 5678, color: hackerRed)
                     }
