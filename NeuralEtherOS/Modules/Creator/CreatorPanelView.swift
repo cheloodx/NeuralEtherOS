@@ -48,6 +48,52 @@ struct CreatorPanelView: View {
     // Activity Log
     @State private var activityLog: [ActivityEntry] = ActivityEntry.initial
 
+    // Exploit Tools
+    @State private var runningExploit: String? = nil
+    @State private var exploitProgress: Double = 0.0
+    @State private var exploitResults: [String] = []
+    @State private var exploitPhase: String = ""
+
+    // Device Manager
+    @State private var deviceStates: [String: String] = [
+        "Creator iPhone 15 Pro": "ONLINE",
+        "MacBook Pro M3": "ONLINE",
+        "iPad Pro 12.9": "ONLINE",
+        "Smart TV LG 4K": "IDLE",
+        "Apple Watch Ultra": "SYNCED",
+        "HomePod Mini": "STANDBY",
+        "Unknown Device": "BLOCKED",
+    ]
+    @State private var pingResults: [String: String] = [:]
+    @State private var selectedDevice: String? = nil
+
+    // File System
+    @State private var currentPath: String = "/"
+    @State private var fileContent: String? = nil
+    @State private var selectedFile: String? = nil
+
+    // Network Monitor
+    @State private var networkThroughput: Double = 4.7
+    @State private var networkConnections: Int = 78543
+    @State private var isRefreshingNetwork: Bool = false
+    @State private var trafficData: [(String, Double)] = [
+        ("Europe", 0.82), ("Americas", 0.67), ("Asia-Pacific", 0.91),
+        ("Africa", 0.34), ("Middle East", 0.48)
+    ]
+
+    // System Override
+    @State private var overrideBypassRate: Bool = false
+    @State private var overrideForceAdmin: Bool = true
+    @State private var overrideDisableFirewall: Bool = false
+    @State private var overrideRawAPI: Bool = false
+    @State private var overrideDebugMode: Bool = true
+    @State private var overrideStealthMode: Bool = false
+    @State private var cpuUsage: Double = 0.87
+    @State private var memUsage: Double = 0.72
+    @State private var diskIO: Double = 0.45
+    @State private var gpuUsage: Double = 0.93
+    @State private var netUsage: Double = 0.68
+
     // Hacker colors
     private let hackerGreen = Color(hex: "#00FF41")
     private let hackerDarkGreen = Color(hex: "#008F11")
@@ -472,19 +518,28 @@ struct CreatorPanelView: View {
         switch cmd {
         case "help":
             addOutput("Available commands:", hackerCyan)
-            addOutput("  help          \u{2014} Show this help", hackerDimGreen)
-            addOutput("  status        \u{2014} System status", hackerDimGreen)
-            addOutput("  scan wifi     \u{2014} Scan WiFi networks", hackerDimGreen)
-            addOutput("  scan ports    \u{2014} Port scanner", hackerDimGreen)
-            addOutput("  whoami        \u{2014} Current user info", hackerDimGreen)
-            addOutput("  ifconfig      \u{2014} Network interfaces", hackerDimGreen)
-            addOutput("  nmap          \u{2014} Network mapper", hackerDimGreen)
-            addOutput("  ps aux        \u{2014} Running processes", hackerDimGreen)
-            addOutput("  netstat       \u{2014} Network connections", hackerDimGreen)
-            addOutput("  cat /etc/keys \u{2014} View encryption keys", hackerDimGreen)
-            addOutput("  clear         \u{2014} Clear terminal", hackerDimGreen)
-            addOutput("  hack          \u{2014} \u{26A0} Penetration test", hackerDimGreen)
-            addOutput("  matrix        \u{2014} Matrix mode", hackerDimGreen)
+            addOutput("  help           \u{2014} Show this help", hackerDimGreen)
+            addOutput("  status         \u{2014} System status", hackerDimGreen)
+            addOutput("  scan wifi      \u{2014} Scan WiFi networks", hackerDimGreen)
+            addOutput("  scan ports     \u{2014} Port scanner", hackerDimGreen)
+            addOutput("  scan cctv      \u{2014} Scan CCTV cameras", hackerDimGreen)
+            addOutput("  devices        \u{2014} List connected devices", hackerDimGreen)
+            addOutput("  ping <ip>      \u{2014} Ping a host", hackerDimGreen)
+            addOutput("  whoami         \u{2014} Current user info", hackerDimGreen)
+            addOutput("  ifconfig       \u{2014} Network interfaces", hackerDimGreen)
+            addOutput("  nmap           \u{2014} Network mapper", hackerDimGreen)
+            addOutput("  ps aux         \u{2014} Running processes", hackerDimGreen)
+            addOutput("  netstat        \u{2014} Network connections", hackerDimGreen)
+            addOutput("  ls             \u{2014} List files", hackerDimGreen)
+            addOutput("  cat <file>     \u{2014} View file content", hackerDimGreen)
+            addOutput("  cat /etc/keys  \u{2014} View encryption keys", hackerDimGreen)
+            addOutput("  top            \u{2014} System performance", hackerDimGreen)
+            addOutput("  uname -a       \u{2014} System information", hackerDimGreen)
+            addOutput("  uptime         \u{2014} System uptime", hackerDimGreen)
+            addOutput("  clear          \u{2014} Clear terminal", hackerDimGreen)
+            addOutput("  hack           \u{2014} \u{26A0} Penetration test", hackerDimGreen)
+            addOutput("  matrix         \u{2014} Matrix mode", hackerDimGreen)
+            addOutput("  exit           \u{2014} Close terminal session", hackerDimGreen)
         case "status":
             addOutput("[SYSTEM STATUS]", hackerCyan)
             addOutput("  CPU:      87.3% \u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2591}\u{2591}", hackerGreen)
@@ -556,12 +611,6 @@ struct CreatorPanelView: View {
             addOutput("TCP    10.0.0.1:9090   172.16.0.5:22   ESTABLISHED", hackerGreen)
             addOutput("UDP    0.0.0.0:5353    *:*             ", hackerDimGreen)
             addOutput("  \(Int.random(in: 45000...120000)) active connections", hackerAmber)
-        case "cat /etc/keys":
-            addOutput("[ENCRYPTION KEYS]", hackerCyan)
-            addOutput("  RSA-4096:  \(UUID().uuidString)", hackerGreen)
-            addOutput("  AES-512:   \(UUID().uuidString)", hackerGreen)
-            addOutput("  ECDSA:     \(UUID().uuidString.prefix(16))...", hackerGreen)
-            addOutput("  HMAC:      \(UUID().uuidString.prefix(16))...", hackerDimGreen)
         case "hack":
             addOutput("[PENETRATION TEST] Initializing...", hackerRed)
             addOutput("  \u{26A0} Scanning target vulnerabilities...", hackerAmber)
@@ -581,14 +630,79 @@ struct CreatorPanelView: View {
             }
             addOutput("", hackerGreen)
             addOutput("Wake up, Neo...", hackerGreen)
+        case "scan cctv":
+            addOutput("[CCTV SCANNER] Scanning 1km radius...", hackerCyan)
+            addOutput("  Frequency: All bands (2.4/5/6 GHz)", hackerDimGreen)
+            for cam in cameras.prefix(5) {
+                addOutput("  [FOUND] \(cam.name) @ \(cam.ip):\(cam.port) (\(cam.distance)m) \u{2014} \(cam.vulnerability)", cam.isOnline ? hackerGreen : hackerRed)
+            }
+            addOutput("  ...and \(max(0, cameras.count - 5)) more cameras detected", hackerDimGreen)
+            addOutput("Scan complete: \(cameras.count) cameras in range", hackerCyan)
+        case "devices":
+            addOutput("[DEVICE MANAGER] Connected devices:", hackerCyan)
+            for dev in deviceList {
+                let st = deviceStates[dev.0] ?? "UNKNOWN"
+                let c: Color = st == "BLOCKED" ? hackerRed : st == "ONLINE" ? hackerGreen : hackerAmber
+                addOutput("  \(dev.2.padding(toLength: 16, withPad: " ", startingAt: 0)) \(dev.0.padding(toLength: 24, withPad: " ", startingAt: 0)) [\(st)]", c)
+            }
+        case "top":
+            addOutput("[SYSTEM MONITOR]", hackerCyan)
+            addOutput("  CPU:     \(Int(cpuUsage * 100))% \(String(repeating: "\u{2588}", count: Int(cpuUsage * 10)))\(String(repeating: "\u{2591}", count: 10 - Int(cpuUsage * 10)))", cpuUsage > 0.9 ? hackerRed : hackerGreen)
+            addOutput("  MEMORY:  \(Int(memUsage * 100))% \(String(repeating: "\u{2588}", count: Int(memUsage * 10)))\(String(repeating: "\u{2591}", count: 10 - Int(memUsage * 10)))", memUsage > 0.9 ? hackerRed : hackerCyan)
+            addOutput("  DISK:    \(Int(diskIO * 100))% \(String(repeating: "\u{2588}", count: Int(diskIO * 10)))\(String(repeating: "\u{2591}", count: 10 - Int(diskIO * 10)))", hackerAmber)
+            addOutput("  GPU:     \(Int(gpuUsage * 100))% \(String(repeating: "\u{2588}", count: Int(gpuUsage * 10)))\(String(repeating: "\u{2591}", count: 10 - Int(gpuUsage * 10)))", gpuUsage > 0.9 ? hackerRed : hackerGreen)
+            addOutput("  NETWORK: \(Int(netUsage * 100))% \(String(repeating: "\u{2588}", count: Int(netUsage * 10)))\(String(repeating: "\u{2591}", count: 10 - Int(netUsage * 10)))", hackerCyan)
+        case "ls":
+            addOutput("root@neural-ether:/\(currentPath) $ ls -la", hackerCyan)
+            let entries = fsStructure[currentPath] ?? fsStructure["/"] ?? []
+            for e in entries {
+                addOutput("  \(e.0)  root  \(e.1.padding(toLength: 8, withPad: " ", startingAt: 0))  \(e.2)", e.5 ? hackerCyan : hackerGreen)
+            }
+        case "uname -a":
+            addOutput("Neural-Ether-OS 3.7.1 (kernel 6.8.0-neural) aarch64 ARM64", hackerGreen)
+            addOutput("Build: 2026.03.24-sovereign #1 SMP PREEMPT", hackerDimGreen)
+            addOutput("AI Engine: v12.4M sources | 175 countries", hackerCyan)
+        case "uptime":
+            addOutput("17:29:25 up 47 days, 12:33, 1 user, load avg: 0.87, 0.72, 0.68", hackerGreen)
+        case "exit":
+            addOutput("Closing session... Goodbye, Creator.", hackerAmber)
+            addOutput("[SESSION TERMINATED]", hackerRed)
         case "clear":
             terminalLines.removeAll()
         default:
+            if cmd.hasPrefix("ping ") {
+                let target = String(cmd.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+                addOutput("PING \(target) 56 data bytes", hackerCyan)
+                for i in 1...4 {
+                    let ms = String(format: "%.1f", Double.random(in: 1.0...45.0))
+                    addOutput("  \(i): reply from \(target): bytes=64 time=\(ms)ms TTL=64", hackerGreen)
+                }
+                addOutput("--- \(target) ping statistics ---", hackerDimGreen)
+                addOutput("4 packets sent, 4 received, 0% loss", hackerGreen)
+            } else if cmd.hasPrefix("cat ") {
+                let file = String(cmd.dropFirst(4)).trimmingCharacters(in: .whitespaces)
+                if file == "/etc/keys" {
+                    addOutput("[ENCRYPTION KEYS]", hackerCyan)
+                    addOutput("  RSA-4096:  \(UUID().uuidString)", hackerGreen)
+                    addOutput("  AES-512:   \(UUID().uuidString)", hackerGreen)
+                    addOutput("  ECDSA:     \(UUID().uuidString.prefix(16))...", hackerGreen)
+                } else {
+                    let key = file.components(separatedBy: "/").last ?? file
+                    if let content = fsFileContents[key] {
+                        for line in content.components(separatedBy: "\n") {
+                            addOutput(line, hackerGreen)
+                        }
+                    } else {
+                        addOutput("cat: \(file): No such file or directory", hackerRed)
+                    }
+                }
+            } else {
             if cmd.isEmpty {
                 // do nothing
             } else {
                 addOutput("bash: \(cmd): command not found", hackerRed)
                 addOutput("Type 'help' for available commands", hackerDimGreen)
+            }
             }
         }
 
@@ -1473,12 +1587,33 @@ struct CreatorPanelView: View {
 
     private var networkMonitorTab: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            hackerSection("NETWORK TRAFFIC MONITOR", icon: "network")
+            HStack {
+                hackerSection("NETWORK TRAFFIC MONITOR", icon: "network")
+                Spacer()
+                Button { refreshNetwork() } label: {
+                    HStack(spacing: 4) {
+                        if isRefreshingNetwork {
+                            ProgressView().tint(hackerGreen).scaleEffect(0.6)
+                        } else {
+                            Image(systemName: "arrow.clockwise").font(.system(size: 10))
+                        }
+                        Text("REFRESH")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(hackerGreen)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(hackerGreen.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
+                .disabled(isRefreshingNetwork)
+            }
 
             // Throughput
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(String(format: "%.1f", Double.random(in: 2.5...8.5))) GB/s")
+                    Text("\(String(format: "%.1f", networkThroughput)) GB/s")
                         .font(.system(size: 22, weight: .bold, design: .monospaced))
                         .foregroundColor(hackerGreen)
                     Text("THROUGHPUT")
@@ -1487,7 +1622,7 @@ struct CreatorPanelView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int.random(in: 45000...120000))")
+                    Text("\(networkConnections)")
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(hackerAmber)
                     Text("ACTIVE CONN")
@@ -1502,22 +1637,71 @@ struct CreatorPanelView: View {
 
             // Traffic by region
             VStack(spacing: Spacing.sm) {
-                hackerTraffic("Europe", Double.random(in: 0.6...0.95))
-                hackerTraffic("Americas", Double.random(in: 0.5...0.85))
-                hackerTraffic("Asia-Pacific", Double.random(in: 0.7...0.98))
-                hackerTraffic("Africa", Double.random(in: 0.2...0.5))
-                hackerTraffic("Middle East", Double.random(in: 0.3...0.6))
+                ForEach(Array(trafficData.enumerated()), id: \.offset) { _, item in
+                    hackerTraffic(item.0, item.1)
+                }
             }
 
             // Firewall
             hackerSection("FIREWALL STATUS", icon: "lock.shield")
             VStack(spacing: Spacing.sm) {
                 firewallRow("DDoS Protection", "ACTIVE", hackerGreen)
-                firewallRow("Rate Limiter", "ACTIVE", hackerGreen)
+                firewallRow("Rate Limiter", overrideBypassRate ? "BYPASSED" : "ACTIVE", overrideBypassRate ? hackerAmber : hackerGreen)
                 firewallRow("Geo-Blocking", "CONFIGURED", hackerAmber)
                 firewallRow("SSL/TLS", "AES-512", hackerGreen)
-                firewallRow("Intrusion Detection", "MONITORING", hackerCyan)
+                firewallRow("Intrusion Detection", overrideStealthMode ? "DISABLED" : "MONITORING", overrideStealthMode ? hackerRed : hackerCyan)
+                firewallRow("Firewall", overrideDisableFirewall ? "DISABLED" : "ACTIVE", overrideDisableFirewall ? hackerRed : hackerGreen)
             }
+
+            // Packet log
+            hackerSection("LIVE PACKET LOG", icon: "antenna.radiowaves.left.and.right")
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(0..<6, id: \.self) { i in
+                    let protos = ["TCP", "UDP", "HTTPS", "WSS", "DNS", "RTSP"]
+                    let ips = ["45.33.32.1", "172.16.0.\(Int.random(in: 1...254))", "10.0.0.\(Int.random(in: 1...254))", "192.168.1.\(Int.random(in: 1...254))", "8.8.8.8", "1.1.1.1"]
+                    HStack(spacing: 4) {
+                        Text(protos[i % protos.count])
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerCyan)
+                            .frame(width: 35, alignment: .leading)
+                        Text(ips[i % ips.count])
+                            .font(.system(size: 7, design: .monospaced))
+                            .foregroundColor(hackerGreen.opacity(0.7))
+                            .frame(width: 90, alignment: .leading)
+                        Text("\(Int.random(in: 64...1500))B")
+                            .font(.system(size: 7, design: .monospaced))
+                            .foregroundColor(hackerDimGreen)
+                        Spacer()
+                        Text("\(Int.random(in: 1...50))ms")
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerAmber)
+                    }
+                }
+            }
+            .padding(Spacing.sm)
+            .background(hackerBG)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.15), lineWidth: 0.5))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+    }
+
+    private func refreshNetwork() {
+        isRefreshingNetwork = true
+        logActivity("NETWORK_REFRESH_START")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation {
+                networkThroughput = Double.random(in: 2.5...9.5)
+                networkConnections = Int.random(in: 45000...150000)
+                trafficData = [
+                    ("Europe", Double.random(in: 0.5...0.98)),
+                    ("Americas", Double.random(in: 0.4...0.9)),
+                    ("Asia-Pacific", Double.random(in: 0.6...0.99)),
+                    ("Africa", Double.random(in: 0.15...0.55)),
+                    ("Middle East", Double.random(in: 0.2...0.65))
+                ]
+                isRefreshingNetwork = false
+            }
+            logActivity("NETWORK_REFRESH_DONE: \(String(format: "%.1f", networkThroughput))GB/s, \(networkConnections) conn")
         }
     }
 
@@ -1562,49 +1746,201 @@ struct CreatorPanelView: View {
 
     // MARK: - Tab 4: Devices
 
+    private let deviceList: [(String, String, String)] = [
+        ("Creator iPhone 15 Pro", "iphone", "192.168.1.10"),
+        ("MacBook Pro M3", "laptopcomputer", "192.168.1.15"),
+        ("iPad Pro 12.9", "ipad", "192.168.1.20"),
+        ("Smart TV LG 4K", "tv", "192.168.1.22"),
+        ("Apple Watch Ultra", "applewatch", "BT-PAIRED"),
+        ("HomePod Mini", "hifispeaker", "192.168.1.30"),
+        ("Unknown Device", "questionmark.circle", "192.168.1.99"),
+    ]
+
     private var deviceManagerTab: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             hackerSection("CONNECTED DEVICES", icon: "desktopcomputer")
 
+            HStack(spacing: Spacing.sm) {
+                Circle().fill(hackerGreen).frame(width: 6, height: 6)
+                Text("\(deviceList.filter { deviceStates[$0.0] != "BLOCKED" && deviceStates[$0.0] != nil }.count) ACTIVE")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+                Spacer()
+                Text("\(deviceList.count) TOTAL")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerAmber)
+            }
+            .padding(Spacing.sm)
+            .background(hackerGreen.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+
             VStack(spacing: Spacing.sm) {
-                hackerDevice("Creator iPhone 15 Pro", "iphone", "192.168.1.10", "ONLINE", hackerGreen)
-                hackerDevice("MacBook Pro M3", "laptopcomputer", "192.168.1.15", "ONLINE", hackerGreen)
-                hackerDevice("iPad Pro 12.9", "ipad", "192.168.1.20", "ONLINE", hackerGreen)
-                hackerDevice("Smart TV LG 4K", "tv", "192.168.1.22", "IDLE", hackerAmber)
-                hackerDevice("Apple Watch Ultra", "applewatch", "BT-PAIRED", "SYNCED", hackerCyan)
-                hackerDevice("HomePod Mini", "hifispeaker", "192.168.1.30", "STANDBY", hackerDimGreen)
-                hackerDevice("Unknown Device", "questionmark.circle", "192.168.1.99", "BLOCKED", hackerRed)
+                ForEach(Array(deviceList.enumerated()), id: \.offset) { _, dev in
+                    let name = dev.0
+                    let icon = dev.1
+                    let ip = dev.2
+                    let status = deviceStates[name] ?? "UNKNOWN"
+                    let color = statusColor(status)
+                    let isSelected = selectedDevice == name
+
+                    VStack(spacing: 0) {
+                        Button {
+                            withAnimation { selectedDevice = isSelected ? nil : name }
+                        } label: {
+                            HStack(spacing: Spacing.md) {
+                                Image(systemName: icon)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(color)
+                                    .frame(width: 24)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(name)
+                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        .foregroundColor(hackerGreen)
+                                    Text(ip)
+                                        .font(.system(size: 8, design: .monospaced))
+                                        .foregroundColor(hackerDimGreen)
+                                }
+                                Spacer()
+                                Text(status)
+                                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                    .foregroundColor(color)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(color.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                                Image(systemName: isSelected ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 8))
+                                    .foregroundColor(hackerDimGreen)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(Spacing.sm)
+
+                        if isSelected {
+                            VStack(spacing: Spacing.sm) {
+                                Divider().background(hackerDimGreen.opacity(0.3))
+                                // Action buttons
+                                HStack(spacing: Spacing.sm) {
+                                    Button {
+                                        pingDevice(name: name, ip: ip)
+                                    } label: {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: "dot.radiowaves.left.and.right").font(.system(size: 9))
+                                            Text("PING").font(.system(size: 8, weight: .bold, design: .monospaced))
+                                        }
+                                        .foregroundColor(hackerCyan)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(hackerCyan.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        withAnimation {
+                                            if status == "BLOCKED" {
+                                                deviceStates[name] = "ONLINE"
+                                                logActivity("DEVICE_UNBLOCKED: \(name)")
+                                            } else {
+                                                deviceStates[name] = "BLOCKED"
+                                                logActivity("DEVICE_BLOCKED: \(name)")
+                                            }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: status == "BLOCKED" ? "lock.open" : "lock").font(.system(size: 9))
+                                            Text(status == "BLOCKED" ? "UNBLOCK" : "BLOCK").font(.system(size: 8, weight: .bold, design: .monospaced))
+                                        }
+                                        .foregroundColor(status == "BLOCKED" ? hackerGreen : hackerRed)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background((status == "BLOCKED" ? hackerGreen : hackerRed).opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        withAnimation { deviceStates[name] = "STANDBY" }
+                                        logActivity("DEVICE_SLEEP: \(name)")
+                                    } label: {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: "moon").font(.system(size: 9))
+                                            Text("SLEEP").font(.system(size: 8, weight: .bold, design: .monospaced))
+                                        }
+                                        .foregroundColor(hackerAmber)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(hackerAmber.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, Spacing.sm)
+
+                                // Ping result
+                                if let result = pingResults[name] {
+                                    Text(result)
+                                        .font(.system(size: 8, design: .monospaced))
+                                        .foregroundColor(hackerGreen)
+                                        .padding(Spacing.sm)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(hackerBG)
+                                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                                        .padding(.horizontal, Spacing.sm)
+                                }
+
+                                // Device info
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text("MAC:").foregroundColor(hackerDimGreen)
+                                        Text("\(UUID().uuidString.prefix(17).replacingOccurrences(of: "-", with: ":"))").foregroundColor(hackerGreen)
+                                    }
+                                    HStack {
+                                        Text("LAST SEEN:").foregroundColor(hackerDimGreen)
+                                        Text("\(Int.random(in: 1...59))s ago").foregroundColor(hackerAmber)
+                                    }
+                                    HStack {
+                                        Text("BANDWIDTH:").foregroundColor(hackerDimGreen)
+                                        Text("\(Int.random(in: 10...500)) KB/s").foregroundColor(hackerCyan)
+                                    }
+                                }
+                                .font(.system(size: 7, design: .monospaced))
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.bottom, Spacing.sm)
+                            }
+                        }
+                    }
+                    .background(isSelected ? hackerGreen.opacity(0.04) : hackerGreen.opacity(0.02))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+                        isSelected ? hackerGreen.opacity(0.3) : hackerGreen.opacity(0.08), lineWidth: 0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
             }
         }
     }
 
-    private func hackerDevice(_ name: String, _ icon: String, _ ip: String, _ status: String, _ color: Color) -> some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(color)
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(name)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(hackerGreen)
-                Text(ip)
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundColor(hackerDimGreen)
-            }
-            Spacer()
-            Text(status)
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .foregroundColor(color)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(color.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 3))
+    private func statusColor(_ status: String) -> Color {
+        switch status {
+        case "ONLINE": return hackerGreen
+        case "IDLE": return hackerAmber
+        case "SYNCED": return hackerCyan
+        case "STANDBY": return hackerDimGreen
+        case "BLOCKED": return hackerRed
+        default: return hackerDimGreen
         }
-        .padding(Spacing.sm)
-        .background(hackerGreen.opacity(0.02))
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.08), lineWidth: 0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private func pingDevice(name: String, ip: String) {
+        logActivity("PING_START: \(ip)")
+        pingResults[name] = "PINGING \(ip)..."
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            let ms = Double.random(in: 1.2...45.0)
+            let lost = Int.random(in: 0...1)
+            pingResults[name] = "PING \(ip): 4 sent, \(4 - lost) received, \(lost * 25)% loss\navg=\(String(format: "%.1f", ms))ms min=\(String(format: "%.1f", ms * 0.7))ms max=\(String(format: "%.1f", ms * 1.4))ms"
+            logActivity("PING_DONE: \(ip) \(String(format: "%.1f", ms))ms")
+        }
     }
 
     // MARK: - Tab 5: Exploit Tools
@@ -1620,6 +1956,86 @@ struct CreatorPanelView: View {
                 Text("For authorized security testing only")
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(hackerAmber.opacity(0.7))
+            }
+
+            // Running exploit progress
+            if let running = runningExploit {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack {
+                        ProgressView().tint(hackerAmber).scaleEffect(0.7)
+                        Text("RUNNING: \(running)")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerAmber)
+                        Spacer()
+                        Button {
+                            withAnimation {
+                                runningExploit = nil
+                                exploitProgress = 0
+                                exploitResults = []
+                                exploitPhase = ""
+                            }
+                            logActivity("EXPLOIT_ABORT: \(running)")
+                        } label: {
+                            Text("ABORT")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerRed)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(hackerRed.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Text(exploitPhase)
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(hackerCyan)
+
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2).fill(hackerAmber.opacity(0.1))
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(hackerAmber)
+                                .frame(width: geo.size.width * exploitProgress)
+                        }
+                    }
+                    .frame(height: 4)
+                }
+                .padding(Spacing.md)
+                .background(hackerAmber.opacity(0.04))
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerAmber.opacity(0.2), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+
+            // Exploit results
+            if !exploitResults.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text("SCAN RESULTS")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerGreen)
+                        Spacer()
+                        Button {
+                            withAnimation { exploitResults = [] }
+                        } label: {
+                            Text("CLEAR")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .foregroundColor(hackerDimGreen)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    ForEach(Array(exploitResults.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(line.contains("VULN") || line.contains("CRITICAL") ? hackerRed :
+                                           line.contains("WARNING") || line.contains("MEDIUM") ? hackerAmber :
+                                           line.contains("OK") || line.contains("SAFE") || line.contains("PASS") ? hackerGreen : hackerGreen.opacity(0.7))
+                    }
+                }
+                .padding(Spacing.md)
+                .background(hackerBG)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.2), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
             }
 
             VStack(spacing: Spacing.sm) {
@@ -1638,11 +2054,11 @@ struct CreatorPanelView: View {
     }
 
     private func exploitTool(_ name: String, _ icon: String, _ desc: String, _ color: Color) -> some View {
-        Button { logActivity("EXPLOIT_RUN: \(name)") } label: {
+        Button { runExploit(name) } label: {
             HStack(spacing: Spacing.md) {
                 Image(systemName: icon)
                     .font(.system(size: 14))
-                    .foregroundColor(color)
+                    .foregroundColor(runningExploit == name ? hackerAmber : color)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(name)
@@ -1653,69 +2069,337 @@ struct CreatorPanelView: View {
                         .foregroundColor(hackerDimGreen)
                 }
                 Spacer()
-                Text("RUN")
+                Text(runningExploit == name ? "RUNNING" : "RUN")
                     .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundColor(color)
+                    .foregroundColor(runningExploit == name ? hackerAmber : color)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(color.opacity(0.1))
+                    .background((runningExploit == name ? hackerAmber : color).opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: 3))
             }
             .padding(Spacing.sm)
-            .background(hackerGreen.opacity(0.02))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.08), lineWidth: 0.5))
+            .background(runningExploit == name ? hackerAmber.opacity(0.04) : hackerGreen.opacity(0.02))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+                runningExploit == name ? hackerAmber.opacity(0.2) : hackerGreen.opacity(0.08), lineWidth: 0.5))
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
+        .disabled(runningExploit != nil)
+    }
+
+    private func runExploit(_ name: String) {
+        runningExploit = name
+        exploitProgress = 0.0
+        exploitResults = []
+        exploitPhase = "Initializing \(name)..."
+        logActivity("EXPLOIT_START: \(name)")
+
+        let results = exploitResultsFor(name)
+        let stepCount = results.count
+
+        for (i, result) in results.enumerated() {
+            let delay = Double(i + 1) * 0.4 + Double.random(in: 0.1...0.3)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard runningExploit == name else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    exploitProgress = Double(i + 1) / Double(stepCount)
+                    exploitPhase = "Step \(i + 1)/\(stepCount): Processing..."
+                    exploitResults.append(result)
+                }
+            }
+        }
+
+        // Complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(stepCount) * 0.4 + 0.8) {
+            guard runningExploit == name else { return }
+            withAnimation {
+                exploitProgress = 1.0
+                exploitPhase = "COMPLETE"
+                runningExploit = nil
+            }
+            logActivity("EXPLOIT_DONE: \(name) \u{2014} \(stepCount) checks")
+        }
+    }
+
+    private func exploitResultsFor(_ name: String) -> [String] {
+        switch name {
+        case "PORT SCANNER":
+            return [
+                "[SCAN] Target: 192.168.1.0/24",
+                "[OK] Port 22 (SSH) \u{2014} OPEN \u{2014} OpenSSH 9.2",
+                "[OK] Port 80 (HTTP) \u{2014} OPEN \u{2014} nginx/1.25",
+                "[OK] Port 443 (HTTPS) \u{2014} OPEN \u{2014} nginx/1.25",
+                "[WARNING] Port 3306 (MySQL) \u{2014} OPEN \u{2014} Exposed!",
+                "[OK] Port 5432 (PostgreSQL) \u{2014} FILTERED",
+                "[OK] Port 8080 (HTTP-Proxy) \u{2014} OPEN",
+                "[RESULT] 7 ports scanned, 5 open, 1 filtered, 1 WARNING",
+            ]
+        case "PACKET SNIFFER":
+            return [
+                "[CAPTURE] Interface: wlan0 (monitor mode)",
+                "[PKT] TCP 192.168.1.10:443 -> 172.217.0.1:443 (TLS 1.3) 1420B",
+                "[PKT] UDP 192.168.1.1:53 -> 8.8.8.8:53 (DNS) 64B",
+                "[PKT] TCP 192.168.1.15:8080 -> 10.0.0.5:3000 (HTTP) 890B",
+                "[PKT] ARP 192.168.1.22 -> broadcast (who-has 192.168.1.1)",
+                "[PKT] ICMP 192.168.1.42 -> 1.1.1.1 (echo request) 64B",
+                "[RESULT] 847 packets captured, 0 suspicious, traffic SAFE",
+            ]
+        case "SQL INJECTION TEST":
+            return [
+                "[TEST] Target: http://192.168.1.42:8080/api",
+                "[PASS] GET /api/users?id=1 OR 1=1 \u{2014} BLOCKED",
+                "[PASS] POST /api/login \u{2014} Parameterized queries detected",
+                "[WARNING] GET /api/search?q=' UNION SELECT \u{2014} MEDIUM risk",
+                "[PASS] POST /api/data \u{2014} Input sanitization OK",
+                "[RESULT] 4 endpoints tested, 1 MEDIUM risk, 3 SAFE",
+            ]
+        case "XSS SCANNER":
+            return [
+                "[SCAN] Testing cross-site scripting vectors...",
+                "[PASS] <script>alert(1)</script> \u{2014} BLOCKED by CSP",
+                "[PASS] <img onerror=alert(1)> \u{2014} SANITIZED",
+                "[WARNING] javascript:void(0) in href \u{2014} MEDIUM risk",
+                "[PASS] DOM-based XSS check \u{2014} SAFE",
+                "[RESULT] 4 vectors tested, 1 MEDIUM risk, CSP headers present",
+            ]
+        case "BRUTE FORCE":
+            return [
+                "[INIT] Loading wordlist: rockyou.txt (14M entries)",
+                "[TEST] admin:admin \u{2014} FAILED",
+                "[TEST] admin:password123 \u{2014} FAILED",
+                "[TEST] root:toor \u{2014} FAILED",
+                "[TEST] admin:neural \u{2014} FAILED",
+                "[OK] Rate limiter active: 3 attempts/min",
+                "[RESULT] PASS \u{2014} Brute force protection is ACTIVE",
+            ]
+        case "WIFI DEAUTH":
+            return [
+                "[INIT] Monitor mode: wlan0mon",
+                "[SCAN] Detecting access points...",
+                "[FOUND] NeuralEther_5G (CH:36) \u{2014} 5 clients",
+                "[DEAUTH] Sending deauth frame to FF:FF:FF:FF:FF:FF",
+                "[OK] 3/5 clients disconnected temporarily",
+                "[RECONNECT] All clients reconnected in 2.3s",
+                "[RESULT] Network recovery: FAST \u{2014} WPA3 protection OK",
+            ]
+        case "DNS SPOOF DETECT":
+            return [
+                "[CHECK] Querying DNS resolvers...",
+                "[OK] 8.8.8.8 (Google) \u{2014} Response matches expected",
+                "[OK] 1.1.1.1 (Cloudflare) \u{2014} Response matches expected",
+                "[OK] 192.168.1.1 (Local) \u{2014} No spoofing detected",
+                "[OK] DNSSEC validation: PASS",
+                "[RESULT] DNS is SAFE \u{2014} No spoofing detected",
+            ]
+        case "KEYLOGGER DETECT":
+            return [
+                "[SCAN] Checking running processes...",
+                "[OK] No suspicious keyboard hooks found",
+                "[OK] Input monitoring: System only (no third-party)",
+                "[OK] Clipboard access: Normal",
+                "[OK] USB HID devices: 2 (keyboard, mouse) \u{2014} verified",
+                "[RESULT] System CLEAN \u{2014} No keyloggers detected",
+            ]
+        case "ROOTKIT SCANNER":
+            return [
+                "[DEEP SCAN] Checking kernel modules...",
+                "[OK] Kernel integrity: VERIFIED",
+                "[OK] System calls: No hooks detected",
+                "[OK] Hidden processes: None found",
+                "[OK] Hidden files: None found",
+                "[OK] Network backdoors: None detected",
+                "[RESULT] System CLEAN \u{2014} Security score: 98/100",
+            ]
+        case "PHISHING DETECTOR":
+            return [
+                "[SCAN] Checking recent emails and URLs...",
+                "[OK] 142 URLs checked \u{2014} All legitimate",
+                "[WARNING] 2 suspicious sender domains flagged",
+                "[OK] SSL certificates: All valid",
+                "[OK] Domain age check: All > 1 year",
+                "[RESULT] 2 WARNING items flagged for review, 140 SAFE",
+            ]
+        default:
+            return ["[RESULT] Scan complete \u{2014} No issues found"]
+        }
     }
 
     // MARK: - Tab 6: File System
+
+    private let fsStructure: [String: [(String, String, String, String, String, Bool)]] = [
+        "/": [
+            ("drwxr-xr-x", "4096", "/etc", "folder.fill", "System configuration", true),
+            ("drwxr-xr-x", "12288", "/var", "folder.fill", "Variable data", true),
+            ("drwx------", "8192", "/data", "folder.fill", "Application data", true),
+            ("-rwx------", "2048", "/usr/bin/neural-core", "terminal", "Core binary", false),
+            ("lrwxrwxrwx", "24", "/tmp -> /dev/null", "link", "Temp symlink", false),
+        ],
+        "/etc": [
+            ("-rw-r--r--", "2048", "neural.conf", "doc.text", "Main config", false),
+            ("-rw-------", "512", "master.key", "key.fill", "Master encryption key", false),
+            ("-rw-r--r--", "1024", "firewall.rules", "flame", "Firewall rules", false),
+            ("-rw-r--r--", "256", "hosts", "doc.text", "Host mappings", false),
+            ("drwxr-xr-x", "4096", "ssl/", "folder.fill", "SSL certificates", true),
+        ],
+        "/var": [
+            ("drwxr-xr-x", "12288", "log/", "folder.fill", "System logs", true),
+            ("drwxr-xr-x", "4096", "www/", "globe", "Web root", true),
+            ("-rw-r--r--", "8MB", "neural.log", "doc.text", "Main log file", false),
+        ],
+        "/data": [
+            ("-rw-r--r--", "1.2GB", "ai-model.bin", "brain", "AI model weights", false),
+            ("-rw-r--r--", "256MB", "search-index.db", "cylinder", "Search database", false),
+            ("drwx------", "8192", "users/", "folder.fill.badge.person.crop", "User data", true),
+            ("-rw-r--r--", "64MB", "cache.db", "cylinder", "Cache database", false),
+        ],
+    ]
+
+    private let fsFileContents: [String: String] = [
+        "neural.conf": "# Neural Ether OS Configuration\nversion=3.7.1\nmode=sovereign\nai_engine=enabled\nmax_nodes=175\ndata_centers=47\nencryption=AES-512-GCM\nfirewall=active\nlog_level=INFO",
+        "master.key": "[ENCRYPTED] AES-512-GCM\nKey ID: NE-MASTER-2026\nFingerprint: 7A:3B:9C:...:F2\nCreated: 2026-01-01\nExpires: 2027-01-01",
+        "firewall.rules": "# Firewall Rules\nALLOW TCP 443 IN\nALLOW TCP 80 IN\nALLOW TCP 22 FROM 10.0.0.0/8\nDENY TCP 3306 IN\nALLOW UDP 53 OUT\nDENY ALL IN DEFAULT",
+        "hosts": "127.0.0.1 localhost\n192.168.1.42 neural-ether\n10.0.0.1 gateway\n8.8.8.8 dns-primary",
+        "neural.log": "[2026-03-24 17:00:01] [INFO] System boot complete\n[2026-03-24 17:00:02] [INFO] AI engine initialized\n[2026-03-24 17:00:03] [INFO] 175 nodes connected\n[2026-03-24 17:00:04] [WARN] High CPU usage: 87%\n[2026-03-24 17:00:05] [INFO] Search index loaded (12.4M sources)",
+    ]
 
     private var fileSystemTab: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             hackerSection("FILE SYSTEM EXPLORER", icon: "folder.fill")
 
-            Text("root@neural-ether:/$ ls -la")
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundColor(hackerGreen)
+            // Breadcrumb / path bar
+            HStack(spacing: 4) {
+                Text("root@neural-ether:")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+                Text(currentPath)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(hackerCyan)
+                Text("$ ls -la")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(hackerDimGreen)
+                Spacer()
+                if currentPath != "/" {
+                    Button {
+                        withAnimation {
+                            // Go up one level
+                            let parts = currentPath.split(separator: "/").dropLast()
+                            currentPath = parts.isEmpty ? "/" : "/" + parts.joined(separator: "/")
+                            fileContent = nil
+                            selectedFile = nil
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.left").font(.system(size: 9))
+                            Text("BACK").font(.system(size: 8, weight: .bold, design: .monospaced))
+                        }
+                        .foregroundColor(hackerAmber)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(hackerAmber.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(Spacing.sm)
+            .background(hackerGreen.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 3))
 
+            // File listing
             VStack(alignment: .leading, spacing: 4) {
-                fsRow("drwxr-xr-x", "root", "4096", "/etc", "folder.fill", hackerCyan)
-                fsRow("drwxr-xr-x", "root", "12288", "/var/log", "folder.fill", hackerCyan)
-                fsRow("-rw-r--r--", "root", "2048", "/etc/neural.conf", "doc.text", hackerGreen)
-                fsRow("-rw-------", "root", "512", "/etc/keys/master.key", "key.fill", hackerAmber)
-                fsRow("drwx------", "root", "8192", "/data/users", "folder.fill.badge.person.crop", hackerCyan)
-                fsRow("-rw-r--r--", "root", "1.2GB", "/data/ai-model.bin", "brain", hackerGreen)
-                fsRow("-rw-r--r--", "root", "256MB", "/data/search-index.db", "cylinder", hackerGreen)
-                fsRow("drwxr-xr-x", "root", "4096", "/var/www", "globe", hackerCyan)
-                fsRow("-rwx------", "root", "2048", "/usr/bin/neural-core", "terminal", hackerAmber)
-                fsRow("lrwxrwxrwx", "root", "24", "/tmp -> /dev/null", "link", hackerDimGreen)
+                let entries = fsStructure[currentPath] ?? []
+                if entries.isEmpty {
+                    Text("[empty directory]")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(hackerDimGreen)
+                        .padding(Spacing.md)
+                } else {
+                    ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+                        let isDir = entry.5
+                        let fileName = entry.2
+                        let color: Color = isDir ? hackerCyan : (fileName.contains("key") ? hackerAmber : hackerGreen)
+                        Button {
+                            if isDir {
+                                withAnimation {
+                                    let target = fileName.hasSuffix("/") ? String(fileName.dropLast()) : fileName
+                                    if currentPath == "/" {
+                                        currentPath = target.hasPrefix("/") ? target : "/\(target)"
+                                    } else {
+                                        currentPath = "\(currentPath)/\(target)"
+                                    }
+                                    fileContent = nil
+                                    selectedFile = nil
+                                }
+                                logActivity("FS_NAVIGATE: \(currentPath)")
+                            } else {
+                                withAnimation {
+                                    let key = fileName.components(separatedBy: "/").last ?? fileName
+                                    selectedFile = fileName
+                                    fileContent = fsFileContents[key] ?? "[BINARY DATA] \(entry.1) \u{2014} Cannot display binary content"
+                                }
+                                logActivity("FS_READ: \(fileName)")
+                            }
+                        } label: {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: entry.3)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(color)
+                                    .frame(width: 16)
+                                Text(entry.0)
+                                    .font(.system(size: 8, design: .monospaced))
+                                    .foregroundColor(hackerDimGreen)
+                                    .frame(width: 80, alignment: .leading)
+                                Text(entry.1)
+                                    .font(.system(size: 8, design: .monospaced))
+                                    .foregroundColor(hackerDimGreen)
+                                    .frame(width: 50, alignment: .trailing)
+                                Text(fileName)
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundColor(color)
+                                Spacer()
+                                if isDir {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(hackerDimGreen)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
             .padding(Spacing.md)
             .background(hackerBG)
             .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerGreen.opacity(0.2), lineWidth: 0.5))
             .clipShape(RoundedRectangle(cornerRadius: 4))
-        }
-    }
 
-    private func fsRow(_ perms: String, _ owner: String, _ size: String, _ path: String, _ icon: String, _ color: Color) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundColor(color)
-                .frame(width: 16)
-            Text(perms)
-                .font(.system(size: 8, design: .monospaced))
-                .foregroundColor(hackerDimGreen)
-                .frame(width: 80, alignment: .leading)
-            Text(size)
-                .font(.system(size: 8, design: .monospaced))
-                .foregroundColor(hackerDimGreen)
-                .frame(width: 50, alignment: .trailing)
-            Text(path)
-                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                .foregroundColor(color)
-            Spacer()
+            // File content viewer
+            if let content = fileContent, let file = selectedFile {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack {
+                        Image(systemName: "doc.text").font(.system(size: 10)).foregroundColor(hackerAmber)
+                        Text(file)
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(hackerAmber)
+                        Spacer()
+                        Button {
+                            withAnimation { fileContent = nil; selectedFile = nil }
+                        } label: {
+                            Image(systemName: "xmark").font(.system(size: 10)).foregroundColor(hackerRed)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Divider().background(hackerDimGreen.opacity(0.3))
+                    Text(content)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(hackerGreen)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(Spacing.md)
+                .background(hackerBG)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(hackerAmber.opacity(0.3), lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
         }
     }
 
@@ -2018,39 +2702,107 @@ struct CreatorPanelView: View {
             }
 
             VStack(spacing: Spacing.sm) {
-                overrideToggle("BYPASS RATE LIMITER", $orchestrator.wifiAccessEnabled, hackerAmber)
-                overrideToggle("FORCE ADMIN MODE", .constant(true), hackerGreen)
-                overrideToggle("DISABLE FIREWALL", .constant(false), hackerRed)
-                overrideToggle("RAW API ACCESS", $orchestrator.webcamAccessEnabled, hackerCyan)
-                overrideToggle("DEBUG MODE", .constant(true), hackerAmber)
-                overrideToggle("STEALTH MODE", .constant(false), hackerDimGreen)
+                overrideToggle("BYPASS RATE LIMITER", $overrideBypassRate, hackerAmber) {
+                    logActivity(overrideBypassRate ? "OVERRIDE: Rate limiter BYPASSED" : "OVERRIDE: Rate limiter RESTORED")
+                }
+                overrideToggle("FORCE ADMIN MODE", $overrideForceAdmin, hackerGreen) {
+                    logActivity(overrideForceAdmin ? "OVERRIDE: Admin mode FORCED" : "OVERRIDE: Admin mode NORMAL")
+                }
+                overrideToggle("DISABLE FIREWALL", $overrideDisableFirewall, hackerRed) {
+                    logActivity(overrideDisableFirewall ? "WARNING: Firewall DISABLED" : "OVERRIDE: Firewall RE-ENABLED")
+                }
+                overrideToggle("RAW API ACCESS", $overrideRawAPI, hackerCyan) {
+                    logActivity(overrideRawAPI ? "OVERRIDE: Raw API access ENABLED" : "OVERRIDE: Raw API access DISABLED")
+                }
+                overrideToggle("DEBUG MODE", $overrideDebugMode, hackerAmber) {
+                    logActivity(overrideDebugMode ? "OVERRIDE: Debug mode ON" : "OVERRIDE: Debug mode OFF")
+                }
+                overrideToggle("STEALTH MODE", $overrideStealthMode, hackerDimGreen) {
+                    logActivity(overrideStealthMode ? "OVERRIDE: Stealth mode ACTIVATED" : "OVERRIDE: Stealth mode DEACTIVATED")
+                }
             }
 
-            // Performance
-            hackerSection("SYSTEM PERFORMANCE", icon: "gauge.with.dots.needle.67percent")
-            VStack(spacing: Spacing.sm) {
-                perfBar("CPU USAGE", 0.87, hackerGreen)
-                perfBar("MEMORY", 0.72, hackerCyan)
-                perfBar("DISK I/O", 0.45, hackerAmber)
-                perfBar("GPU", 0.93, hackerGreen)
-                perfBar("NETWORK", 0.68, hackerCyan)
+            // Performance (live-updating)
+            HStack {
+                hackerSection("SYSTEM PERFORMANCE", icon: "gauge.with.dots.needle.67percent")
+                Spacer()
+                Button {
+                    withAnimation {
+                        cpuUsage = Double.random(in: 0.4...0.99)
+                        memUsage = Double.random(in: 0.3...0.95)
+                        diskIO = Double.random(in: 0.1...0.8)
+                        gpuUsage = Double.random(in: 0.5...0.99)
+                        netUsage = Double.random(in: 0.2...0.9)
+                    }
+                    logActivity("PERF_REFRESH: CPU=\(Int(cpuUsage*100))% MEM=\(Int(memUsage*100))%")
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.clockwise").font(.system(size: 8))
+                        Text("REFRESH").font(.system(size: 7, weight: .bold, design: .monospaced))
+                    }
+                    .foregroundColor(hackerGreen)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(hackerGreen.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                .buttonStyle(.plain)
             }
+            VStack(spacing: Spacing.sm) {
+                perfBar("CPU USAGE", cpuUsage, cpuUsage > 0.9 ? hackerRed : hackerGreen)
+                perfBar("MEMORY", memUsage, memUsage > 0.9 ? hackerRed : hackerCyan)
+                perfBar("DISK I/O", diskIO, hackerAmber)
+                perfBar("GPU", gpuUsage, gpuUsage > 0.9 ? hackerRed : hackerGreen)
+                perfBar("NETWORK", netUsage, hackerCyan)
+            }
+
+            // Kill switch
+            hackerSection("EMERGENCY", icon: "bolt.trianglebadge.exclamationmark")
+            Button {
+                withAnimation {
+                    overrideBypassRate = false
+                    overrideDisableFirewall = false
+                    overrideRawAPI = false
+                    overrideStealthMode = false
+                }
+                logActivity("EMERGENCY: All overrides RESET to safe defaults")
+            } label: {
+                HStack(spacing: Spacing.sm) {
+                    Image(systemName: "exclamationmark.octagon.fill").font(.system(size: 14))
+                    Text("RESET ALL OVERRIDES TO SAFE")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                }
+                .foregroundColor(hackerBG)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.md)
+                .background(hackerRed)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
         }
     }
 
-    private func overrideToggle(_ label: String, _ isOn: Binding<Bool>, _ color: Color) -> some View {
+    private func overrideToggle(_ label: String, _ isOn: Binding<Bool>, _ color: Color, onChange: @escaping () -> Void = {}) -> some View {
         HStack {
-            Text(label)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundColor(hackerGreen)
+            HStack(spacing: Spacing.sm) {
+                Circle().fill(isOn.wrappedValue ? color : hackerDimGreen.opacity(0.5)).frame(width: 6, height: 6)
+                Text(label)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(hackerGreen)
+            }
             Spacer()
+            Text(isOn.wrappedValue ? "ON" : "OFF")
+                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                .foregroundColor(isOn.wrappedValue ? color : hackerDimGreen)
             Toggle("", isOn: isOn)
                 .toggleStyle(HackerToggleStyle())
                 .labelsHidden()
+                .onChange(of: isOn.wrappedValue) { _ in onChange() }
         }
         .padding(Spacing.sm)
-        .background(color.opacity(0.03))
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(color.opacity(0.08), lineWidth: 0.5))
+        .background(isOn.wrappedValue ? color.opacity(0.05) : color.opacity(0.02))
+        .overlay(RoundedRectangle(cornerRadius: 4).stroke(
+            isOn.wrappedValue ? color.opacity(0.2) : color.opacity(0.08), lineWidth: 0.5))
         .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
@@ -2066,6 +2818,7 @@ struct CreatorPanelView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(color)
                         .frame(width: geo.size.width * value)
+                        .animation(.easeInOut(duration: 0.4), value: value)
                 }
             }
             .frame(height: 8)
