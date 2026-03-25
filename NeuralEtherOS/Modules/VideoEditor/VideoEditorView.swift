@@ -8,7 +8,7 @@ struct VideoEditorView: View {
     @State private var selectedTool: VideoTool = .timeline
     @State private var isPlaying: Bool = false
     @State private var currentTime: Double = 0.0
-    @State private var totalDuration: Double = 30.0
+    @State private var totalDuration: Double = 33.5
     @State private var playbackSpeed: PlaybackSpeed = .normal
     @State private var clips: [VideoClip] = VideoClip.sampleClips
     @State private var selectedClipIndex: Int? = nil
@@ -452,7 +452,7 @@ struct VideoEditorView: View {
                     clipInfo("NAME", value: clips[idx].name)
                     clipInfo("DURATION", value: formatTime(clips[idx].duration))
                     clipInfo("TYPE", value: clips[idx].type)
-                    clipInfo("START", value: formatTime(clips[0..<idx].reduce(0) { $0 + clips[$1 == clips[0] ? 0 : 1].duration }))
+                    clipInfo("START", value: formatTime(clips[0..<idx].reduce(0) { $0 + $1.duration }))
                 }
                 .padding(.horizontal, Spacing.lg)
             }

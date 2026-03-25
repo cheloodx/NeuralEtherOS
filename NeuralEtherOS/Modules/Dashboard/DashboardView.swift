@@ -113,7 +113,7 @@ struct DashboardView: View {
                 miniDivider
                 miniStat(value: "\(orchestrator.growthRate / 1000)k", label: "GROWTH", icon: "arrow.up.right")
                 miniDivider
-                miniStat(value: String(format: "%.0f", orchestrator.latency), label: "MS", icon: "bolt.fill")
+                miniStat(value: String(format: "%.2f", orchestrator.latency), label: "MS", icon: "bolt.fill")
             }
             .padding(.horizontal, Spacing.lg)
 
