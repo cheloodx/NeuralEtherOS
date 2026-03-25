@@ -960,6 +960,7 @@ struct VideoEditorView: View {
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
             }
             .buttonStyle(.plain)
+            .disabled(isExporting)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.vertical, Spacing.sm)

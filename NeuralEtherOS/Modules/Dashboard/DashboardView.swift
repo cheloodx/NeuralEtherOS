@@ -198,7 +198,7 @@ struct DashboardView: View {
             HStack(spacing: Spacing.md) {
                 StatBox(
                     label: "LATENCY",
-                    value: String(format: "%.1fms", orchestrator.latency)
+                    value: String(format: "%.2fms", orchestrator.latency)
                 )
                 StatBox(
                     label: "DATA CENTERS",
