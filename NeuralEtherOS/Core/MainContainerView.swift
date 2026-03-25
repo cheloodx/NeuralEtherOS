@@ -1,107 +1,106 @@
 import SwiftUI
 
 // MARK: - Main Container View
-// Root navigation using TabView with custom Neural Ether styling.
+// Root navigation with 5 clean tabs — professional iOS tab bar.
 
 struct MainContainerView: View {
     @EnvironmentObject var orchestrator: NeuralOrchestrator
     @State private var selectedTab: Tab = .dashboard
 
     enum Tab: String, CaseIterable {
-        case dashboard = "SOVEREIGN"
-        case forge = "FORGE"
-        case security = "VAULT"
-        case deploy = "DEPLOY"
+        case dashboard = "Home"
+        case search = "Search"
+        case photo = "Photo"
+        case video = "Video"
+        case creator = "Creator"
 
         var icon: String {
             switch self {
-            case .dashboard: return "brain.head.profile"
-            case .forge: return "bolt.fill"
-            case .security: return "lock.shield"
-            case .deploy: return "shippingbox"
+            case .dashboard: return "house"
+            case .search: return "magnifyingglass"
+            case .photo: return "camera"
+            case .video: return "film"
+            case .creator: return "crown"
+            }
+        }
+
+        var activeIcon: String {
+            switch self {
+            case .dashboard: return "house.fill"
+            case .search: return "magnifyingglass.circle.fill"
+            case .photo: return "camera.fill"
+            case .video: return "film.fill"
+            case .creator: return "crown.fill"
             }
         }
     }
 
     var body: some View {
         ZStack {
-            // Global background
-            Color.surface
+            Color(hex: "#0A0A1A")
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Content area
                 Group {
                     switch selectedTab {
                     case .dashboard:
                         DashboardView()
-                    case .forge:
-                        CreativeForgeView()
-                    case .security:
-                        SecurityVaultView()
-                    case .deploy:
-                        DeploymentHubView()
+                    case .search:
+                        NeuralSearchView()
+                    case .photo:
+                        PhotoEditorView()
+                    case .video:
+                        VideoEditorView()
+                    case .creator:
+                        CreatorPanelView()
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Custom Tab Bar
-                customTabBar
+                tabBar
             }
         }
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Custom Tab Bar
+    // MARK: - Professional Tab Bar (5 tabs, evenly spaced)
 
-    private var customTabBar: some View {
+    private var tabBar: some View {
         HStack(spacing: 0) {
             ForEach(Tab.allCases, id: \.rawValue) { tab in
-                tabButton(for: tab)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        selectedTab = tab
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: selectedTab == tab ? tab.activeIcon : tab.icon)
+                            .font(.system(size: 22, weight: selectedTab == tab ? .semibold : .regular))
+                            .foregroundColor(selectedTab == tab ? Color(hex: "#6C63FF") : Color.white.opacity(0.4))
+                            .frame(height: 24)
+
+                        Text(tab.rawValue)
+                            .font(.system(size: 10, weight: selectedTab == tab ? .semibold : .regular))
+                            .foregroundColor(selectedTab == tab ? Color(hex: "#6C63FF") : Color.white.opacity(0.4))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    .padding(.bottom, 2)
+                }
+                .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, Spacing.sm)
-        .padding(.top, Spacing.md)
-        .padding(.bottom, Spacing.xl)
+        .padding(.bottom, 20)
         .background(
-            Color.surfaceContainerLow
+            Color(hex: "#111128")
                 .ignoresSafeArea(edges: .bottom)
         )
         .overlay(
-            // Top ghost border
             Rectangle()
-                .fill(Color.outlineVariant.opacity(0.1))
-                .frame(height: 1),
+                .fill(Color.white.opacity(0.06))
+                .frame(height: 0.5),
             alignment: .top
         )
-    }
-
-    private func tabButton(for tab: Tab) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedTab = tab
-            }
-        } label: {
-            VStack(spacing: Spacing.xs) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(selectedTab == tab ? .neuralPrimary : .onSurfaceVariant)
-
-                Text(tab.rawValue)
-                    .font(NeuralFont.monoSmall())
-                    .tracking(1.5)
-                    .foregroundColor(selectedTab == tab ? .neuralPrimary : .onSurfaceVariant)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                selectedTab == tab
-                    ? Color.neuralPrimary.opacity(0.08)
-                    : Color.clear
-            )
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
-        }
-        .buttonStyle(.plain)
     }
 }
 

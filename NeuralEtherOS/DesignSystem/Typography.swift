@@ -32,6 +32,11 @@ enum NeuralFont {
         .custom("SpaceGrotesk-Medium", size: 20, relativeTo: .headline)
     }
 
+    /// Headline Small: 1rem (16pt)
+    static func headlineSmall() -> Font {
+        .custom("SpaceGrotesk-Medium", size: 16, relativeTo: .subheadline)
+    }
+
     // MARK: - Body & UI (Inter — functional legibility)
 
     /// Body Large: 1rem (16pt)

@@ -39,6 +39,17 @@ class NeuralOrchestrator: ObservableObject {
     /// Deployment status
     @Published var deploymentStatus: DeploymentStatus = .idle
 
+    // MARK: - Creator Controls
+
+    /// Adult content (+18) toggle
+    @Published var adultContentEnabled: Bool = false
+
+    /// WiFi access control toggle
+    @Published var wifiAccessEnabled: Bool = false
+
+    /// Webcam access toggle
+    @Published var webcamAccessEnabled: Bool = false
+
     /// Learning confidence scores per module
     @Published var confidenceScores: [String: Double] = [
         "NEURAL_SYNC": 0.924,
